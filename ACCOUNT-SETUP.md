@@ -25,7 +25,7 @@ Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `.env` if using the Supabase datab
 
 ## AI features
 
-AI playlist generation and voice intent require `GROQ_API_KEY` on the server. The browser does not store or send provider keys. Anonymous AI requests are rejected in production when `AI_REQUIRE_AUTH=true`.
+AI playlist generation and voice intent require `GROQ_API_KEY` on the server. The browser does not store or send provider keys. Production AI requests require a signed-in account; Firebase Authentication (configured with `FIREBASE_PROJECT_ID`) is sufficient, so Supabase credentials are only needed if you use Supabase Auth or the database integration. Anonymous AI requests are rejected when `AI_REQUIRE_AUTH=true`.
 
 ## Start the app
 

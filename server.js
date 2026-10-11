@@ -79,6 +79,9 @@ loadDotEnv();
 const getSupabaseUrl = () => process.env.SUPABASE_URL || '';
 const getSupabaseAnonKey = () => process.env.SUPABASE_ANON_KEY || '';
 const isSupabaseConfigured = () => Boolean(getSupabaseUrl() && getSupabaseAnonKey());
+const isFirebaseAuthConfigured = () => Boolean(process.env.FIREBASE_PROJECT_ID);
+const isAccountAuthConfigured = () => isSupabaseConfigured() || isFirebaseAuthConfigured();
+const isAiAuthRequired = () => process.env.AI_REQUIRE_AUTH === 'true' || process.env.NODE_ENV === 'production' || isAccountAuthConfigured();
 const AUTH_ACCESS_COOKIE = 'aurafy_access_token';
 const AUTH_REFRESH_COOKIE = 'aurafy_refresh_token';
 
@@ -644,8 +647,8 @@ const proxyAi = async (req, res, ip) => {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed.' });
   if (!process.env.GROQ_API_KEY) return sendJson(res, 503, { error: 'AI is not configured on this server.' });
   let rateLimitKey = ip;
-  const authRequired = process.env.AI_REQUIRE_AUTH === 'true' || process.env.NODE_ENV === 'production' || isSupabaseConfigured();
-  if (authRequired && !isSupabaseConfigured()) return sendJson(res, 503, { error: 'AI access requires account setup on this server.' });
+  const authRequired = isAiAuthRequired();
+  if (authRequired && !isAccountAuthConfigured()) return sendJson(res, 503, { error: 'AI access requires Firebase Authentication or Supabase Auth to be configured on this server.' });
   if (authRequired) {
     let auth;
     try { auth = await getAuthContext(req, res); }
@@ -707,8 +710,8 @@ const proxyLyricsWordSync = async (req, res, ip) => {
   if (!process.env.GROQ_API_KEY) return sendJson(res, 503, { error: 'Word sync is not configured on this server.' });
 
   let rateLimitKey = ip;
-  const authRequired = process.env.AI_REQUIRE_AUTH === 'true' || process.env.NODE_ENV === 'production' || isSupabaseConfigured();
-  if (authRequired && !isSupabaseConfigured()) return sendJson(res, 503, { error: 'AI access requires account setup on this server.' });
+  const authRequired = isAiAuthRequired();
+  if (authRequired && !isAccountAuthConfigured()) return sendJson(res, 503, { error: 'AI access requires Firebase Authentication or Supabase Auth to be configured on this server.' });
   if (authRequired) {
     let auth;
     try { auth = await getAuthContext(req, res); }
