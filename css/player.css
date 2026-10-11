@@ -1372,6 +1372,16 @@ body.mobile-view-active .player-like-btn {
   flex: 0 0 40px;
 }
 
+body.mobile-view-active .player-bar .player-output-indicator {
+  width: 28px;
+  height: 28px;
+}
+
+body.mobile-view-active .player-bar .player-output-indicator svg {
+  width: 17px;
+  height: 17px;
+}
+
 body.mobile-view-active .player-mobile-controls {
   flex: 0 0 auto;
   gap: clamp(2px, 1.3vw, 6px);
@@ -1400,6 +1410,11 @@ body.mobile-view-active .player-mobile-controls .player-btn {
     width: 36px;
     height: 36px;
     flex-basis: 36px;
+  }
+
+  body.mobile-view-active .player-bar .player-output-indicator {
+    width: 24px;
+    height: 24px;
   }
 
   body.mobile-view-active .player-mobile-controls { gap: 0; }

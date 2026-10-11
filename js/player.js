@@ -298,7 +298,11 @@
   let outputDeviceRefreshBound = false;
   const ensureBluetoothIndicator = () => {
     const right = document.getElementById('player-right');
-    if (!right) return null;
+    const left = document.getElementById('player-left');
+    const mobileMode = document.body.classList.contains('mobile-view-active') ||
+      (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches);
+    const host = mobileMode ? left : right;
+    if (!host) return null;
     let indicator = document.getElementById('player-bluetooth-indicator');
     if (!indicator) {
       indicator = document.createElement('span');
@@ -309,8 +313,17 @@
       indicator.title = 'Bluetooth output status is managed by your device settings';
       indicator.hidden = true;
       indicator.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.71 7.71 12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71L13.41 12l4.3-4.29zM13 5.83l2.59 2.59L13 11V5.83zm2.59 9.75L13 18.17v-5.34l2.59 2.75z"/></svg>';
+    }
+    if (mobileMode) {
+      const likeButton = left.querySelector('#player-like-btn');
+      if (indicator.parentElement !== left || indicator.nextElementSibling !== likeButton) {
+        left.insertBefore(indicator, likeButton || null);
+      }
+    } else {
       const volume = right.querySelector('.volume-container');
-      right.insertBefore(indicator, volume || null);
+      if (indicator.parentElement !== right || indicator.nextElementSibling !== volume) {
+        right.insertBefore(indicator, volume || null);
+      }
     }
     return indicator;
   };
@@ -613,6 +626,7 @@
       }
       if (!outputDeviceRefreshBound) {
         window.addEventListener('focus', refreshBluetoothOutput);
+        window.addEventListener('resize', ensureBluetoothIndicator, { passive: true });
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') refreshBluetoothOutput();
         });
