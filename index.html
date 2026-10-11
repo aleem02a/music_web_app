@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Aurafy - Music Player</title>
     <meta name="description" content="Aurafy is a polished music player for local files, playlists, discovery, and full-screen playback.">
-    <meta name="theme-color" content="#FF2A85">
+    <meta name="theme-color" content="#090E18">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="apple-touch-icon" href="favicon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
     
     <!-- Fonts -->
@@ -17,12 +17,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Supabase JS Client for Real-Time Authentication & Cloud Sync -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+      // Clear old service worker caches for instant update
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => { if (k !== 'aurafy-cache-v22') caches.delete(k); });
+        });
+      }
+    </script>
+
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/index.css?v=13">
-    <link rel="stylesheet" href="css/layout.css?v=15">
-    <link rel="stylesheet" href="css/components.css?v=17">
-    <link rel="stylesheet" href="css/player.css?v=13">
-    <link rel="stylesheet" href="css/animations.css?v=13">
+    <link rel="stylesheet" href="css/index.css?v=20261010_101">
+    <link rel="stylesheet" href="css/layout.css?v=20261011_responsive3">
+    <link rel="stylesheet" href="css/components.css?v=20261011_responsive3">
+    <link rel="stylesheet" href="css/player.css?v=20261011_responsive3">
+    <link rel="stylesheet" href="css/animations.css?v=20261011_home_card_motion1">
 </head>
 <body>
     <!-- ===================== APP SHELL ===================== -->
@@ -32,18 +44,15 @@
         <aside class="sidebar" id="sidebar">
             <!-- Logo -->
             <div class="sidebar-logo" id="sidebar-logo">
-                <button class="menu-toggle-btn sidebar-menu-toggle" id="sidebar-menu-toggle-btn" aria-label="Toggle Sidebar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
                 <svg class="logo-icon" width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-                    <rect width="36" height="36" rx="10" fill="#0a0a0a"/>
+                    <rect width="36" height="36" rx="10" fill="#090E18"/>
                     <path d="M18 6C16 6 15 7.5 14 9L6 23C4.5 25.5 6 28 9 28H27C30 28 31.5 25.5 30 23L22 9C21 7.5 20 6 18 6Z" fill="url(#logoGrad)"/>
-                    <path d="M15 14V21L21 17.5Z" fill="#0a0a0a"/>
+                    <path d="M15 14V21L21 17.5Z" fill="#090E18"/>
                     <defs>
                         <linearGradient id="logoGrad" x1="0" y1="36" x2="36" y2="0" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#3B82F6"/>
-                            <stop offset="0.5" stop-color="#8B5CF6"/>
-                            <stop offset="1" stop-color="#FF2A85"/>
+                            <stop stop-color="#378ACB"/>
+                            <stop offset="0.5" stop-color="#8279E8"/>
+                            <stop offset="1" stop-color="#68B8EF"/>
                         </linearGradient>
                     </defs>
                 </svg>
@@ -103,8 +112,8 @@
 
             <!-- Import Files Button -->
             <div class="sidebar-bottom">
-                <label class="sidebar-import-btn" id="sidebar-import-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <label class="sidebar-import-btn" id="sidebar-import-btn" title="Import Files" data-tooltip="Import Files">
+                    <svg class="sidebar-import-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
@@ -123,16 +132,13 @@
                     <button class="nav-back-btn" id="nav-back-btn" aria-label="Go Back" title="Go Back">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                     </button>
-                    <button class="menu-toggle-btn header-menu-toggle" id="header-menu-toggle-btn" aria-label="Toggle Sidebar">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                    </button>
                 </div>
                 <!-- Search Bar (appears in search view) -->
                 <div class="search-container" id="search-container">
                     <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                     </svg>
-                    <input type="text" class="search-input" id="search-input" placeholder="What do you want to listen to?" autocomplete="off" spellcheck="false">
+                    <input type="text" class="search-input" id="search-input" placeholder="What do you want to listen to?" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-dropdown">
                     <button class="voice-search-btn" id="voice-search-btn" title="Search with voice">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
@@ -143,38 +149,18 @@
                             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                         </svg>
                     </button>
-                    <div class="search-dropdown" id="search-dropdown"></div>
+                    <div class="search-dropdown" id="search-dropdown" role="listbox" aria-label="Search suggestions"></div>
                 </div>
 
                 <!-- Header Right -->
                 <div class="content-header-right">
+                    <button class="account-button" id="account-button" type="button" aria-label="Log in or create an account">
+                        <svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9.25"/><circle cx="12" cy="9" r="3"/><path d="M6.6 18.3a6.2 6.2 0 0 1 10.8 0" stroke-linecap="round"/></svg>
+                        <span id="account-button-label">Login</span>
+                    </button>
                     <!-- Source Tabs -->
                     <div class="source-tabs" id="source-tabs">
                         <button class="source-tab active" data-source="all" id="tab-all">All</button>
-                        <button class="source-tab" data-source="local" id="tab-local">Local</button>
-                    </div>
-                    <!-- More Options Menu -->
-                    <div class="header-more-menu" id="header-more-menu" style="position: relative;">
-                        <button class="more-btn" id="header-more-btn" title="More Options" style="background: rgba(255,255,255,0.1); border: none; color: var(--color-text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                            </svg>
-                        </button>
-                        <div class="header-dropdown" id="header-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; background: #282828; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; min-width: 250px; overflow: hidden; color: #fff; font-family: inherit;">
-                            <div class="zoom-row" style="display: flex; align-items: center; padding: 12px 16px;">
-                                <span style="flex: 1; font-size: 14px;">Zoom</span>
-                                <div style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
-                                    <button class="more-menu-action" data-action="zoom-out" style="background: transparent; border: none; color: #fff; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;">-</button>
-                                    <span id="zoom-level-text" style="width: 48px; text-align: center; font-size: 14px;">100%</span>
-                                    <button class="more-menu-action" data-action="zoom-in" style="background: transparent; border: none; color: #fff; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">+</button>
-                                </div>
-                                <button class="more-menu-action" data-action="native-fullscreen" title="Full Screen" style="background: transparent; border: none; color: #fff; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px; border-radius: 4px;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </header>
@@ -206,9 +192,12 @@
                 </div>
                 <div class="player-track-info">
                     <div class="player-track-title" id="player-track-title">No track playing</div>
-                    <div class="player-track-artist" id="player-track-artist">—</div>
+                    <div class="player-track-meta">
+                        <div class="player-track-artist" id="player-track-artist">—</div>
+                        <span class="player-quality-badge" id="player-quality-badge" hidden></span>
+                    </div>
                 </div>
-                <button class="player-btn player-like-btn" data-action="like" id="player-like-btn" title="Save to Liked Songs">
+                <button class="player-btn player-like-btn" data-action="like" id="player-like-btn" title="Save to Liked Songs" aria-label="Save to Liked Songs" aria-pressed="false" disabled>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/>
                     </svg>
@@ -218,17 +207,17 @@
             <!-- Center: Controls + Progress -->
             <div class="player-center" id="player-center">
                 <div class="player-controls">
-                    <button class="player-btn" data-action="shuffle" id="btn-shuffle" title="Shuffle">
+                    <button class="player-btn" data-action="shuffle" id="btn-shuffle" title="Shuffle" aria-label="Shuffle" aria-pressed="false">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
                         </svg>
                     </button>
-                    <button class="player-btn" data-action="prev" id="btn-prev" title="Previous">
+                    <button class="player-btn" data-action="prev" id="btn-prev" title="Previous track" aria-label="Previous track" disabled>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
                         </svg>
                     </button>
-                    <button class="player-btn player-btn-main" data-action="toggle-play" id="btn-play" title="Play">
+                    <button class="player-btn player-btn-main" data-action="toggle-play" id="btn-play" title="Play" aria-label="Play" aria-pressed="false">
                         <svg class="icon-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M8 5v14l11-7z"/>
                         </svg>
@@ -236,12 +225,12 @@
                             <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
                         </svg>
                     </button>
-                    <button class="player-btn" data-action="next" id="btn-next" title="Next">
+                    <button class="player-btn" data-action="next" id="btn-next" title="Next track" aria-label="Next track" disabled>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
                         </svg>
                     </button>
-                    <button class="player-btn" data-action="repeat" id="btn-repeat" title="Repeat">
+                    <button class="player-btn" data-action="repeat" id="btn-repeat" title="Repeat: off" aria-label="Repeat: off" aria-pressed="false">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
                         </svg>
@@ -259,13 +248,18 @@
 
             <!-- Right: Volume & Extra -->
             <div class="player-right" id="player-right">
-                <button class="player-btn" data-action="queue" id="btn-queue" title="Queue">
+                <button class="player-btn" data-action="queue" id="btn-queue" title="Queue" aria-label="Open playback queue">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
                     </svg>
                 </button>
+                <span class="player-output-indicator" id="player-bluetooth-indicator" role="status" aria-label="Bluetooth audio output connected" title="Bluetooth audio output connected" hidden>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M17.71 7.71 12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71L13.41 12l4.3-4.29zM13 5.83l2.59 2.59L13 11V5.83zm2.59 9.75L13 18.17v-5.34l2.59 2.75z"/>
+                    </svg>
+                </span>
                 <div class="volume-container" id="volume-container">
-                    <button class="player-btn volume-btn" data-action="mute" id="btn-volume" title="Volume">
+                    <button class="player-btn volume-btn" data-action="mute" id="btn-volume" title="Mute" aria-label="Mute" aria-pressed="false">
                         <svg class="icon-volume-high" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                         </svg>
@@ -280,19 +274,25 @@
                         </div>
                     </div>
                 </div>
-                <button class="player-btn" data-action="fullscreen" id="btn-fullscreen" title="Full Screen Player">
+                <button class="player-btn" data-action="fullscreen" id="btn-fullscreen" title="Full Screen Player" aria-label="Open full screen player">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    </svg>
+                </button>
+                <button class="player-btn player-pip-btn" data-action="pip" id="btn-picture-in-picture" title="Open Picture-in-Picture mini player" aria-label="Open Picture-in-Picture mini player">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                        <path d="M13 12h5v4h-5z"></path>
                     </svg>
                 </button>
             </div>
 
             <!-- Mobile controls (Play/Pause, Next) -->
             <div class="player-mobile-controls">
-                <button class="player-btn player-btn-main" data-action="toggle-play" id="btn-play-mobile" title="Play">
+                <button class="player-btn player-btn-main" data-action="toggle-play" id="btn-play-mobile" title="Play" aria-label="Play" aria-pressed="false">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                 </button>
-                <button class="player-btn" data-action="next" id="btn-next-mobile" title="Next">
+                <button class="player-btn" data-action="next" id="btn-next-mobile" title="Next track" aria-label="Next track" disabled>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
                     </svg>
@@ -329,7 +329,7 @@
         </nav>
 
         <!-- ============== FULLSCREEN PLAYER (Mobile) ============== -->
-        <div class="fullscreen-player" id="fullscreen-player">
+        <div class="fullscreen-player" id="fullscreen-player" role="dialog" aria-label="Full screen player" aria-hidden="true" inert>
             <div class="fs-player-bg" id="fs-player-bg"></div>
             
             <button class="fs-player-close fs-close-btn" id="fs-player-close" title="Exit full screen" aria-label="Exit full screen">
@@ -349,6 +349,7 @@
                     <div class="fs-player-info">
                         <h2 class="fs-player-title" id="fs-player-title">No track playing</h2>
                         <p class="fs-player-artist" id="fs-player-artist">—</p>
+                        <span class="player-quality-badge fs-quality-badge" id="fs-quality-badge" hidden></span>
                     </div>
 
                     <div class="fs-player-progress">
@@ -363,19 +364,19 @@
                     </div>
 
                     <div class="fs-player-controls">
-                        <button class="player-btn" data-action="shuffle" aria-label="Shuffle">
+                        <button class="player-btn" data-action="shuffle" aria-label="Shuffle" aria-pressed="false">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
                         </button>
-                        <button class="player-btn" data-action="prev" aria-label="Previous">
+                        <button class="player-btn" data-action="prev" aria-label="Previous track" disabled>
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                         </button>
-                        <button class="player-btn-main fs-btn-main" data-action="toggle-play" aria-label="Play/Pause">
+                        <button class="player-btn-main fs-btn-main" data-action="toggle-play" aria-label="Play" aria-pressed="false">
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                         </button>
-                        <button class="player-btn" data-action="next" aria-label="Next">
+                        <button class="player-btn" data-action="next" aria-label="Next track" disabled>
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                         </button>
-                        <button class="player-btn" data-action="repeat" aria-label="Repeat">
+                        <button class="player-btn" data-action="repeat" aria-label="Repeat: off" aria-pressed="false">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
                         </button>
                     </div>
@@ -384,7 +385,27 @@
                 <!-- Right Panel: Lyrics -->
                 <div class="fs-panel-right">
                     <div class="lyrics-header">
-                        <div class="lyrics-title">Lyrics</div>
+                        <div class="lyrics-heading">
+                            <span class="lyrics-heading-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <div class="lyrics-title">Lyrics</div>
+                                <div class="lyrics-caption">Follow along with the music</div>
+                            </div>
+                        </div>
+                        <div class="lyrics-header-actions">
+                            <button class="lyrics-word-sync-button" id="lyrics-sync-words" type="button" hidden>
+                                <span class="lyrics-word-sync-icon" aria-hidden="true">✦</span>
+                                <span>Sync words</span>
+                            </button>
+                            <div class="lyrics-sync-status" id="lyrics-sync-status" data-state="idle" aria-live="polite" aria-label="Waiting for a track">
+                                <span class="lyrics-sync-indicator" aria-hidden="true"></span>
+                                <span id="lyrics-sync-label">Waiting</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="lyrics-scroll-box" id="lyrics-scroll-box">
                         <div class="lyrics-content" id="lyrics-content">
@@ -446,7 +467,7 @@
         <div class="modal-overlay hidden" id="create-playlist-modal">
             <div class="modal-content" style="position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
                 <!-- Animated Background -->
-                <div style="position: absolute; inset: 0; background: linear-gradient(45deg, #4b134f, #c94b4b, #8B5CF6); background-size: 200% 200%; animation: live-bg-anim 10s ease infinite alternate; opacity: 0.8; z-index: 0;"></div>
+                <div style="position: absolute; inset: 0; background: linear-gradient(45deg, #142A3B, #6878DF, #8279E8); background-size: 200% 200%; animation: live-bg-anim 10s ease infinite alternate; opacity: 0.8; z-index: 0;"></div>
                 <div style="position: relative; z-index: 1;">
                     <div class="modal-header">
                         <h2 style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Create Playlist</h2>
@@ -458,7 +479,7 @@
                         <input type="text" id="create-playlist-input" class="search-input" placeholder="Enter playlist name" autocomplete="off" style="margin-bottom: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: white; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
                         <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
                             <button class="btn btn-secondary" id="create-playlist-cancel" style="padding: 10px 20px; border-radius: 500px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; cursor: pointer; transition: background 0.2s;">Cancel</button>
-                            <button class="btn btn-primary" id="create-playlist-submit" style="padding: 10px 20px; border-radius: 500px; background: white; border: none; color: #4b134f; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">Create</button>
+                            <button class="btn btn-primary" id="create-playlist-submit" style="padding: 10px 20px; border-radius: 500px; background: white; border: none; color: #142A3B; cursor: pointer; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">Create</button>
                         </div>
                     </div>
                 </div>
@@ -497,12 +518,12 @@
                 </div>
                 <div class="modal-body">
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Groq API Key</label>
-                        <input type="password" id="groq-api-key-input" class="search-input" placeholder="Paste your API key here..." autocomplete="off">
-                        <p style="margin-top: 8px; font-size: 12px; color: var(--color-text-muted);">Required for AI Playlist Generation and Smart Voice Search.</p>
+                        <h3 style="margin-bottom: 8px; font-weight: bold;">AI Assistant</h3>
+                        <p id="ai-config-status" role="status" aria-live="polite" style="font-size: 14px; color: var(--color-text-secondary);">Checking AI availability…</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: var(--color-text-muted);">AI credentials are managed securely by the server.</p>
                     </div>
                     <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-                        <button class="btn btn-primary" id="settings-save" style="padding: 10px 20px; border-radius: 500px; background: var(--color-primary); border: none; color: white; cursor: pointer; font-weight: bold;">Save</button>
+                        <button class="btn btn-primary" id="settings-save" style="padding: 10px 20px; border-radius: 500px; background: var(--color-primary); border: none; color: white; cursor: pointer; font-weight: bold;">Done</button>
                     </div>
                 </div>
             </div>
@@ -540,7 +561,7 @@
                     <p style="margin-bottom: 20px; color: var(--color-text-secondary); font-size: 14px;">Are you sure you want to delete this playlist? This action cannot be undone.</p>
                     <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button class="btn btn-secondary" id="delete-playlist-cancel" style="padding: 10px 20px; border-radius: 500px; background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); cursor: pointer;">Cancel</button>
-                        <button class="btn btn-primary" id="delete-playlist-submit" style="padding: 10px 20px; border-radius: 500px; background: #e91429; border: none; color: white; cursor: pointer; font-weight: bold;">Delete</button>
+                        <button class="btn btn-primary" id="delete-playlist-submit" style="padding: 10px 20px; border-radius: 500px; background: var(--color-danger); border: none; color: white; cursor: pointer; font-weight: bold;">Delete</button>
                     </div>
                 </div>
             </div>
@@ -552,13 +573,17 @@
 
     <!-- ============== SCRIPTS ============== -->
     <!-- Load order matters: data first, then engine, then UI, then app controller -->
-    <script src="js/ai.js"></script>
-    <script src="js/data.js?v=11"></script>
-    <script src="js/player.js?v=11"></script>
-    <script src="js/localFiles.js?v=11"></script>
-    <script src="js/visualizer.js?v=11"></script>
-    <script src="js/spotify.js?v=11"></script>
-    <script src="js/ui.js?v=11"></script>
-    <script src="js/app.js?v=12"></script>
+    <script src="js/ai.js?v=20261010_101"></script>
+    <script src="js/data.js?v=20261011_lyrics_words1"></script>
+    <script src="js/player.js?v=20261011_playback_pip2"></script>
+    <script src="js/localFiles.js?v=20261011_device_download1"></script>
+    <script src="js/visualizer.js?v=20261010_101"></script>
+    <script src="js/spotify.js?v=20261010_101"></script>
+    <script src="js/ui.js?v=20261011_lyrics_words1"></script>
+    <!-- Firebase compat SDK matches the namespaced auth API used by js/auth.js. -->
+    <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
+    <script src="js/auth.js?v=20261011_firebase3"></script>
+    <script src="js/app.js?v=20261011_responsive3"></script>
 </body>
 </html>

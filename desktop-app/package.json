@@ -1,0 +1,49 @@
+{
+  "name": "aurafy-desktop",
+  "version": "1.0.0",
+  "description": "Aurafy Music Player - Windows Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "pack": "electron-builder --win --dir"
+  },
+  "author": "Sd-Fasiuddin",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "sharp": "^0.35.2"
+  },
+  "build": {
+    "appId": "com.aurafy.music",
+    "productName": "Aurafy Music",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

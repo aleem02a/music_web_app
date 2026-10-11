@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aurafy Music</string>
+    <string name="title_activity_main">Aurafy Music</string>
+    <string name="package_name">com.aurafy.music</string>
+    <string name="custom_url_scheme">com.aurafy.music</string>
+</resources>

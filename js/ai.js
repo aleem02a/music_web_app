@@ -2,10 +2,9 @@ const AIService = {
   /**
    * Parse voice intent using Groq API
    * @param {string} transcript The voice input text
-   * @param {string} apiKey The Groq API Key
    * @returns {Promise<Object>} JSON containing intent details
    */
-  async parseVoiceIntent(transcript, apiKey) {
+  async parseVoiceIntent(transcript) {
     
     const prompt = `
 You are an intelligent music assistant inside a web music player app.
@@ -25,16 +24,15 @@ Examples:
 - "Play latest songs of Taylor Swift" -> {"type": "search", "query": "latest songs of Taylor Swift", "playImmediate": true}
 `;
 
-    return this._callGroq(prompt, apiKey);
+    return this._callGroq(prompt);
   },
 
   /**
    * Generate a playlist of 5-10 songs based on a prompt
    * @param {string} prompt User's playlist prompt
-   * @param {string} apiKey The Groq API Key
    * @returns {Promise<Object>} JSON containing an array of song queries
    */
-  async generatePlaylistFromPrompt(prompt, apiKey) {
+  async generatePlaylistFromPrompt(prompt) {
 
     const sysPrompt = `
 You are an expert music curator. 
@@ -53,38 +51,30 @@ Format:
 }
 `;
 
-    return this._callGroq(sysPrompt, apiKey);
+    return this._callGroq(sysPrompt);
   },
 
-  async _callGroq(prompt, apiKey) {
+  async _callGroq(prompt) {
     const url = `/api/groq/openai/v1/chat/completions`;
     
     try {
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
-      }
-      
       const response = await fetch(url, {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          response_format: { type: "json_object" }
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Groq API Error:", errorText);
-        let detail = "Please check your API key.";
+        let detail = "Please try again later.";
         try {
           const errObj = JSON.parse(errorText);
-          if (errObj.error && errObj.error.message) {
+          if (typeof errObj.error === 'string') {
+            detail = errObj.error;
+          } else if (errObj.error && errObj.error.message) {
             detail = errObj.error.message;
           }
         } catch(e) {}
@@ -92,12 +82,17 @@ Format:
       }
 
       const data = await response.json();
-      const rawText = data.choices[0].message.content;
+      const rawText = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (typeof rawText !== 'string') throw new Error('The AI service returned an unexpected response.');
       
       // Sometimes models might still include markdown blocks despite instructions, so we clean it.
       const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
       
-      return JSON.parse(cleanedText);
+      const result = JSON.parse(cleanedText);
+      if (!result || typeof result !== 'object' || Array.isArray(result)) {
+        throw new Error('The AI service returned invalid structured data.');
+      }
+      return result;
     } catch (err) {
       console.error(err);
       throw err;

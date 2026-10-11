@@ -6,8 +6,10 @@
   'use strict';
 
   const DB_NAME = 'PulseMusicDB';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_NAME = 'localTracks';
+  const DOWNLOAD_STORE_NAME = 'offlineDownloads';
+  const MAX_DOWNLOAD_BYTES = 75 * 1024 * 1024;
 
   let db = null;
 
@@ -19,6 +21,9 @@
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
+      if (!database.objectStoreNames.contains(DOWNLOAD_STORE_NAME)) {
+        database.createObjectStore(DOWNLOAD_STORE_NAME, { keyPath: 'id' });
+      }
     };
     request.onsuccess = (e) => { db = e.target.result; resolve(db); };
     request.onerror = (e) => { console.error('[LocalFiles] IndexedDB error:', e); reject(e); };
@@ -28,8 +33,8 @@
     if (!db) { resolve(); return; }
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    // Store metadata only (no blob)
-    const meta = { ...track, audioUrl: '' };
+    // Keep imported audio on this device so blob URLs can be recreated after reload.
+    const meta = { ...track, audioUrl: '', coverUrl: '', fileBlob: track.fileBlob || null, coverBlob: track.coverBlob || null };
     store.put(meta);
     tx.oncomplete = () => resolve();
     tx.onerror = (e) => reject(e);
@@ -42,6 +47,31 @@
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result || []);
     request.onerror = (e) => reject(e);
+  });
+
+  const dbGetDownloads = () => new Promise((resolve, reject) => {
+    if (!db || !db.objectStoreNames.contains(DOWNLOAD_STORE_NAME)) return resolve([]);
+    const request = db.transaction(DOWNLOAD_STORE_NAME, 'readonly').objectStore(DOWNLOAD_STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+
+  const dbPutDownload = (record) => new Promise((resolve, reject) => {
+    if (!db) return reject(new Error('Local storage is unavailable.'));
+    const transaction = db.transaction(DOWNLOAD_STORE_NAME, 'readwrite');
+    transaction.objectStore(DOWNLOAD_STORE_NAME).put(record);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Could not save this download.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Could not save this download.'));
+  });
+
+  const dbDeleteDownload = (id) => new Promise((resolve, reject) => {
+    if (!db) return reject(new Error('Local storage is unavailable.'));
+    const transaction = db.transaction(DOWNLOAD_STORE_NAME, 'readwrite');
+    transaction.objectStore(DOWNLOAD_STORE_NAME).delete(id);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('Could not remove this download.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Could not remove this download.'));
   });
 
   // ── ID3v2 Tag Parser (basic implementation) ─────────────────
@@ -163,9 +193,14 @@
   const LocalFiles = {
 
     async init() {
+      document.addEventListener('library:profilechange', () => {
+        LocalFiles.loadFromStorage();
+        LocalFiles.loadDownloadsForUser();
+      });
       try {
         await openDB();
         await LocalFiles.loadFromStorage();
+        await LocalFiles.loadDownloadsForUser();
       } catch (err) {
         console.warn('[LocalFiles] Init error:', err);
       }
@@ -213,21 +248,29 @@
       }
 
       let importedCount = 0;
+      let savedCount = 0;
 
       for (const file of audioFiles) {
+        let track = null;
         try {
           const metadata = await LocalFiles.parseMetadata(file);
-          const track = LocalFiles.createTrackFromFile(file, metadata);
+          track = LocalFiles.createTrackFromFile(file, metadata);
+          track.profileId = window.MusicData && MusicData.activeUserId || 'guest';
           window.MusicData.addLocalTrack(track);
-          await dbPut(track);
           importedCount++;
+          await dbPut(track);
+          savedCount++;
         } catch (err) {
           console.error('[LocalFiles] Error importing file:', file.name, err);
+          if (!track && window.UI) UI.showToast(`Could not import ${file.name}.`);
         }
       }
 
       if (importedCount > 0) {
-        if (window.UI) UI.showToast(`Imported ${importedCount} track${importedCount > 1 ? 's' : ''}`);
+        if (window.UI) {
+          const persistenceNote = savedCount < importedCount ? ' Some files may need to be imported again after closing the app.' : '';
+          UI.showToast(`Imported ${importedCount} track${importedCount > 1 ? 's' : ''}.${persistenceNote}`);
+        }
         document.dispatchEvent(new CustomEvent('localfiles:updated'));
       }
     },
@@ -262,10 +305,11 @@
     createTrackFromFile(file, metadata) {
       const audioUrl = URL.createObjectURL(file);
       let coverUrl = 'https://picsum.photos/seed/localfile/300/300';
+      let coverBlob = null;
 
       if (metadata.coverData && metadata.coverMime) {
-        const blob = new Blob([metadata.coverData], { type: metadata.coverMime });
-        coverUrl = URL.createObjectURL(blob);
+        coverBlob = new Blob([metadata.coverData], { type: metadata.coverMime });
+        coverUrl = URL.createObjectURL(coverBlob);
       }
 
       return {
@@ -277,6 +321,8 @@
         albumId: '',
         duration: 0, // will be updated when audio loads
         coverUrl,
+        fileBlob: file,
+        coverBlob,
         audioUrl,
         source: 'local',
         genre: ''
@@ -285,6 +331,138 @@
 
     getLocalTracks() {
       return window.MusicData ? MusicData.getLocalTracks() : [];
+    },
+
+    async toggleTrackDownload(track) {
+      if (!track || !track.id) throw new Error('This track is not available for download.');
+      const userId = window.MusicData && MusicData.activeUserId || 'guest';
+      const recordId = `${userId}:${track.id}`;
+      const existing = MusicData.getDownloadedSongs().find(item => item.id === track.id);
+      if (existing) {
+        await dbDeleteDownload(recordId);
+        MusicData.toggleDownloaded(existing);
+        if (existing.audioUrl && existing.audioUrl.startsWith('blob:')) URL.revokeObjectURL(existing.audioUrl);
+        return false;
+      }
+
+      let audioBlob = track.fileBlob || null;
+      if (!audioBlob) {
+        if (!track.audioUrl) throw new Error('This track has no downloadable audio source.');
+        const response = await fetch(track.audioUrl);
+        if (!response.ok) throw new Error(`Download failed (${response.status}).`);
+        audioBlob = await response.blob();
+      }
+      if (!audioBlob || !audioBlob.size) throw new Error('The audio source returned an empty file.');
+      if (audioBlob.size > MAX_DOWNLOAD_BYTES) throw new Error('This file is larger than the 75 MB offline limit.');
+
+      const storedTrack = { ...track };
+      delete storedTrack.fileBlob;
+      delete storedTrack.coverBlob;
+      delete storedTrack.downloadBlob;
+      storedTrack.audioUrl = '';
+      await dbPutDownload({ id: recordId, userId, track: storedTrack, audioBlob });
+      const offlineTrack = {
+        ...storedTrack,
+        audioUrl: URL.createObjectURL(audioBlob),
+        downloadBlob: audioBlob,
+        source: track.source || 'offline'
+      };
+      MusicData.toggleDownloaded(offlineTrack);
+      return true;
+    },
+
+    downloadTrackToDevice(track, audioBlob) {
+      if (!track || !audioBlob || !audioBlob.size) {
+        throw new Error('The audio file is not ready to download.');
+      }
+
+      const safeName = (value) => String(value || '')
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 100);
+      const baseName = [safeName(track.artist), safeName(track.title || track.name)]
+        .filter(Boolean)
+        .join(' - ') || 'Aurafy track';
+      const mime = String(audioBlob.type || '').toLowerCase().split(';')[0];
+      const mimeExtensions = {
+        'audio/mpeg': 'mp3',
+        'audio/mp3': 'mp3',
+        'audio/mp4': 'm4a',
+        'audio/x-m4a': 'm4a',
+        'audio/aac': 'aac',
+        'audio/wav': 'wav',
+        'audio/x-wav': 'wav',
+        'audio/ogg': 'ogg',
+        'audio/flac': 'flac',
+        'audio/webm': 'webm'
+      };
+      let extension = mimeExtensions[mime];
+      if (!extension && track.audioUrl) {
+        try {
+          const urlExtension = new URL(track.audioUrl, window.location.href).pathname.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase();
+          if (['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac', 'webm', 'mp4'].includes(urlExtension)) {
+            extension = urlExtension;
+          }
+        } catch (_) { /* Use the MIME fallback below. */ }
+      }
+      extension = extension || 'mp3';
+
+      const objectUrl = URL.createObjectURL(audioBlob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `${baseName}.${extension}`;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      return true;
+    },
+
+    async downloadTrack(track) {
+      if (!track || !track.id) throw new Error('This track is not available for download.');
+      const existing = MusicData.getDownloadedSongs().find(item => item.id === track.id);
+      if (existing) {
+        await LocalFiles.toggleTrackDownload(existing);
+        return { added: false, removed: true, deviceDownloadStarted: false };
+      }
+
+      const added = await LocalFiles.toggleTrackDownload(track);
+      if (!added) return { added: false, removed: true, deviceDownloadStarted: false };
+
+      const savedTrack = MusicData.getDownloadedSongs().find(item => item.id === track.id);
+      const audioBlob = savedTrack && savedTrack.downloadBlob || track.fileBlob;
+      try {
+        LocalFiles.downloadTrackToDevice(savedTrack || track, audioBlob);
+        return { added: true, removed: false, deviceDownloadStarted: true };
+      } catch (error) {
+        return { added: true, removed: false, deviceDownloadStarted: false, error };
+      }
+    },
+
+    async loadDownloadsForUser() {
+      if (!window.MusicData) return;
+      try {
+        const userId = MusicData.activeUserId || 'guest';
+        const records = await dbGetDownloads();
+        let restored = 0;
+        records.filter(record => record.userId === userId && record.track && record.audioBlob).forEach(record => {
+          const track = MusicData.getDownloadedSongs().find(item => item.id === record.track.id) || record.track;
+          if (track.audioUrl && track.audioUrl.startsWith('blob:')) URL.revokeObjectURL(track.audioUrl);
+          const offlineTrack = {
+            ...track,
+            audioUrl: URL.createObjectURL(record.audioBlob),
+            downloadBlob: record.audioBlob,
+            source: record.track.source || 'offline'
+          };
+          MusicData.restoreDownloadedTrack(offlineTrack);
+          restored++;
+        });
+        if (restored) document.dispatchEvent(new CustomEvent('localfiles:updated'));
+      } catch (err) {
+        console.warn('[LocalFiles] Failed to restore offline downloads:', err);
+      }
     },
 
     async saveToStorage() {
@@ -296,15 +474,19 @@
 
     async loadFromStorage() {
       try {
-        const stored = await dbGetAll();
-        if (stored.length && window.MusicData) {
-          stored.forEach(t => {
-            // Can't restore blob URLs across sessions, mark them for re-import
-            t.audioUrl = t.audioUrl || '';
-            MusicData.addLocalTrack(t);
-          });
-          console.log(`[LocalFiles] Restored ${stored.length} tracks from IndexedDB`);
-        }
+        if (!window.MusicData) return;
+        const userId = MusicData.activeUserId || 'guest';
+        const allStored = await dbGetAll();
+        const stored = allStored.filter(track => (track.profileId || 'guest') === userId);
+        const restoredTracks = stored.map(t => {
+            // Object URLs expire when the page closes; recreate them from IndexedDB blobs.
+            t.audioUrl = t.fileBlob ? URL.createObjectURL(t.fileBlob) : '';
+            t.coverUrl = t.coverBlob ? URL.createObjectURL(t.coverBlob) : (t.coverUrl || 'https://picsum.photos/seed/localfile/300/300');
+            return t;
+        });
+        MusicData.setLocalTracks(restoredTracks);
+        if (restoredTracks.length || allStored.length) console.log(`[LocalFiles] Restored ${stored.length} local tracks for this profile`);
+        document.dispatchEvent(new CustomEvent('localfiles:updated'));
       } catch (err) {
         console.warn('[LocalFiles] Failed to load from storage:', err);
       }

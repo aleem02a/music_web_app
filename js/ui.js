@@ -7,12 +7,39 @@
 
   // ── Genre color map ─────────────────────────────────────────
   const GENRE_COLORS = {
-    'Pop': '#EC4899', 'Rock': '#EF4444', 'Electronic': '#8B5CF6',
-    'Jazz': '#F59E0B', 'Hip-Hop': '#10B981', 'Classical': '#6366F1',
-    'Ambient': '#06B6D4', 'Lo-fi': '#84CC16', 'R&B': '#F97316',
-    'Metal': '#1F2937', 'Folk': '#A3E635', 'Country': '#D97706',
-    'Reggae': '#22C55E', 'Soul': '#DB2777', 'Punk': '#DC2626'
+    'Pop': '#68B8EF', 'Rock': '#378ACB', 'Electronic': '#8279E8',
+    'Jazz': '#6878DF', 'Hip-Hop': '#4A84D9', 'Classical': '#6F7FCE',
+    'Ambient': '#95D2F2', 'Lo-fi': '#5579B8', 'R&B': '#5A73B8',
+    'Metal': '#29364A', 'Folk': '#7288BB', 'Country': '#536CA5',
+    'Reggae': '#4778A8', 'Soul': '#6878DF', 'Punk': '#40599B'
   };
+
+  // Genre illustrations use one consistent, lightweight SVG style so the
+  // browse cards stay crisp at every size without depending on remote art.
+  const GENRE_ICONS = {
+    'Pop': '<path d="m32 7 5.2 17.8L55 30l-17.8 5.2L32 53l-5.2-17.8L9 30l17.8-5.2L32 7Z"/><path d="m49 8 1.7 5.3L56 15l-5.3 1.7L49 22l-1.7-5.3L42 15l5.3-1.7L49 8Z"/>',
+    'Rock': '<path d="m36 6-20 29h14l-2 23 20-32H34l2-20Z"/>',
+    'Electronic': '<path d="M12 46V31m10 15V18m10 28V26m10 20V12m10 34V22"/><path d="M8 51h48"/>',
+    'Jazz': '<circle cx="32" cy="32" r="23"/><circle cx="32" cy="32" r="14"/><circle cx="32" cy="32" r="4"/><path d="M32 9a23 23 0 0 1 23 23"/>',
+    'Hip-Hop': '<path d="M13 35v-5a19 19 0 0 1 38 0v5"/><rect x="10" y="33" width="9" height="16" rx="4"/><rect x="45" y="33" width="9" height="16" rx="4"/><path d="M19 47h5a8 8 0 0 0 8 7h4"/>',
+    'Classical': '<rect x="8" y="15" width="48" height="34" rx="4"/><path d="M16 16v20m8-20v20m8-20v20m8-20v20m8-20v20M8 37h48"/><path d="M20 16v12m16-12v12m16-12v12" stroke-width="3"/>',
+    'Ambient': '<circle cx="32" cy="32" r="7"/><ellipse cx="32" cy="32" rx="25" ry="11" transform="rotate(-28 32 32)"/><circle cx="51" cy="20" r="3" fill="currentColor" stroke="none"/><path d="m13 13 2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4Z"/>',
+    'Lo-fi': '<path d="M43 41A21 21 0 0 1 23 11a22 22 0 1 0 30 27 20 20 0 0 1-10 3Z"/><path d="m47 12 1.5 4.5L53 18l-4.5 1.5L47 24l-1.5-4.5L41 18l4.5-1.5L47 12Z"/>',
+    'R&B': '<rect x="25" y="8" width="14" height="29" rx="7"/><path d="M19 29v3a13 13 0 0 0 26 0v-3M32 45v10m-9 0h18"/>',
+    'Metal': '<path d="m18 44 21-21 7 7-21 21-7-7Z"/><path d="m35 27 7 7m-12-2 7 7m-12-2 7 7M18 44l-5 7 7-2"/><path d="m39 23 5-5 7 7-5 5m-2-12 5-5 7 7-5 5"/>',
+    'Folk': '<path d="M32 53C13 43 11 22 31 10c14 13 16 30 1 43Z"/><path d="M32 51c0-14-5-23-14-30m14 20c4-8 9-13 16-16m-16 7c-4-4-8-6-12-7"/>',
+    'Country': '<path d="M19 48c-5-5-5-12 0-17l14-14 12 12-14 14c-5 5-8 10-12 5Z"/><circle cx="40" cy="25" r="3"/><path d="m16 45 6 6m6-25 10 10m-16-4 7 7m5-22 5-5 12 12-5 5"/>',
+    'Reggae': '<circle cx="32" cy="32" r="11"/><path d="M32 6v8m0 36v8M6 32h8m36 0h8M13.6 13.6l5.7 5.7m25.4 25.4 5.7 5.7m0-36.8-5.7 5.7m-25.4 25.4-5.7 5.7"/>',
+    'Soul': '<path d="M27 48V15l24-5v31"/><ellipse cx="20" cy="49" rx="7" ry="5"/><ellipse cx="44" cy="42" rx="7" ry="5"/><path d="M27 23l24-5"/>',
+    'Punk': '<path d="m32 7 5.7 17.3L56 30l-18.3 5.7L32 54l-5.7-18.3L8 30l18.3-5.7L32 7Z"/><path d="m32 17 3.7 9.3L45 30l-9.3 3.7L32 43l-3.7-9.3L19 30l9.3-3.7L32 17Z"/>'
+  };
+
+  const renderGenreCard = (genre) => `
+    <button type="button" class="genre-card" style="--genre-accent:${GENRE_COLORS[genre] || '#68B8EF'}" data-action="browse-genre" data-genre="${esc(genre)}" aria-label="Browse ${esc(genre)} music">
+      <svg class="genre-card__icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">${GENRE_ICONS[genre] || GENRE_ICONS.Pop}</svg>
+      <span class="genre-card__title">${esc(genre)}</span>
+      <span class="genre-card__hint" aria-hidden="true">Explore genre <span>↗</span></span>
+    </button>`;
 
   // ── Helpers ─────────────────────────────────────────────────
   const esc = (str) => {
@@ -57,7 +84,7 @@
     const id = item.id || '';
     const imgClass = type === 'artist' ? 'card-img card-img-round' : 'card-img';
     return `
-      <div class="card" data-action="navigate" data-view="${view}" data-id="${esc(id)}" data-item='${itemStr}' title="${esc(item.title || item.name)}">
+      <div class="card ${type === 'artist' ? 'card-artist' : ''}" data-action="navigate" data-view="${view}" data-id="${esc(id)}" data-item='${itemStr}' title="${esc(item.title || item.name)}">
         <div class="card-img-wrap">
           <img class="${imgClass}" src="${esc(item.coverUrl || item.imageUrl)}" alt="${esc(item.title || item.name)}" loading="lazy" onerror="this.src='https://picsum.photos/seed/fallback/300/300'">
           <button class="card-play-btn" data-action="play-collection" data-type="${view}" data-id="${esc(id)}" aria-label="Play">
@@ -179,29 +206,56 @@
     `).join('');
   };
 
+  const renderHomeLoadingSkeleton = () => {
+    const section = (title, count = 6, kind = 'cards') => `
+      <section class="section home-skeleton-section">
+        <div class="section-header"><h2>${title}</h2></div>
+        <div class="cards-row">
+          <div class="cards-row-inner home-skeleton-cards ${kind === 'artists' ? 'home-skeleton-artists' : ''}">
+            ${renderCardsSkeleton(count)}
+          </div>
+        </div>
+      </section>
+    `;
+
+    return `
+      <div class="home-page-loading" role="status" aria-label="Loading your home page" aria-busy="true">
+        <section class="section home-skeleton-section">
+          <div class="home-skeleton-block home-skeleton-greeting" aria-hidden="true"></div>
+        </section>
+        ${section('Recently Played')}
+        ${section('Recently Searched')}
+        <section class="section home-skeleton-section">
+          <div class="section-header"><h2>Trending on Trending</h2></div>
+          <div class="cards-row"><div class="cards-row-inner home-skeleton-cards">${renderCardsSkeleton(6)}</div></div>
+        </section>
+        ${section('Made For You', 6)}
+        ${section('Popular Artists', 6, 'artists')}
+        <section class="section home-skeleton-section">
+          <div class="section-header"><h2>Browse Genres</h2></div>
+          <div class="home-skeleton-genres" aria-hidden="true">
+            ${Array(8).fill('<span class="home-skeleton-block"></span>').join('')}
+          </div>
+        </section>
+      </div>
+    `;
+  };
+
   // ── View: Home ──────────────────────────────────────────────
-  const renderHome = () => {
-    const allTracks = MusicData.getAllTracks();
+  const renderHome = (options = {}) => {
+    if (options.homeLoading === true) return renderHomeLoadingSkeleton();
+
     const playlists = MusicData.getPlaylists();
     const albums = MusicData.getAlbums();
     const artists = MusicData.getArtists();
+    const trendingLoading = options.trendingLoading === true;
 
-    // Recently played (simulated — first 6 tracks)
-    const recentTracks = allTracks.slice(0, 6);
-    // Quick picks — first 6 albums
     const quickAlbums = albums.slice(0, 6);
 
     return `
+      <div class="home-page home-page-enter">
       <section class="section">
         <h1 class="section-greeting">${getGreeting()}</h1>
-        <div class="quick-picks">
-          ${recentTracks.map(t => `
-            <div class="quick-pick" data-action="play-track" data-track-id="${esc(t.id)}">
-              <img src="${esc(t.coverUrl)}" alt="" loading="lazy" onerror="this.src='https://picsum.photos/seed/fallback/60/60'">
-              <span>${esc(t.title)}</span>
-            </div>
-          `).join('')}
-        </div>
       </section>
 
       ${window.MusicData && MusicData.getRecentlyPlayed && MusicData.getRecentlyPlayed().length > 0 ? `
@@ -234,8 +288,10 @@
           <span class="section-see-all" data-action="navigate" data-view="search" data-id="">Show all</span>
         </div>
         <div class="cards-row" id="trending-row">
-          <div class="cards-row-inner trending-grid">
-            ${quickAlbums.length > 0 ? quickAlbums.map(a => createCard(a, 'album')).join('') : renderCardsSkeleton(6)}
+        <div class="cards-row-inner trending-grid" aria-busy="${trendingLoading ? 'true' : 'false'}">
+            ${trendingLoading
+              ? `<div class="home-trending-loading" role="status" aria-label="Loading trending music">${renderCardsSkeleton(6)}</div>`
+              : quickAlbums.length > 0 ? quickAlbums.map(a => createCard(a, 'album')).join('') : renderCardsSkeleton(6)}
           </div>
         </div>
       </section>
@@ -267,29 +323,100 @@
           <h2>Browse Genres</h2>
         </div>
         <div class="genre-grid">
-          ${MusicData.genres.map(g => `
-            <div class="genre-card" style="background:${GENRE_COLORS[g] || '#555'}" data-action="browse-genre" data-genre="${esc(g)}">
-              <span>${esc(g)}</span>
-            </div>
-          `).join('')}
+          ${MusicData.genres.map(renderGenreCard).join('')}
         </div>
-      </section>`;
+      </section>
+      </div>`;
   };
 
   // ── View: Search ────────────────────────────────────────────
+  const getSearchRecommendations = () => {
+    const allTracks = MusicData.getAllTracks();
+    const recentTracks = MusicData.getRecentlyPlayed ? MusicData.getRecentlyPlayed().filter(track => track && track.id) : [];
+    const searchedTracks = MusicData.getRecentlySearched
+      ? MusicData.getRecentlySearched().filter(item => item && item.id && (item.type === 'track' || item.audioUrl))
+      : [];
+    const likedTracks = MusicData.getLikedSongs ? MusicData.getLikedSongs().filter(track => track && track.id) : [];
+    const uniqueTracks = [...new Map(allTracks.filter(track => track && track.id).map(track => [track.id, track])).values()];
+
+    const seeds = [
+      ...likedTracks.map(track => ({ track, weight: 3 })),
+      ...recentTracks.slice(0, 10).map((track, index) => ({ track, weight: Math.max(1, 2.6 - index * .16) })),
+      ...searchedTracks.slice(0, 8).map((track, index) => ({ track, weight: Math.max(.8, 1.8 - index * .12) }))
+    ];
+    const genreWeights = new Map();
+    const artistWeights = new Map();
+    seeds.forEach(({ track, weight }) => {
+      const genre = String(track.genre || '').toLocaleLowerCase();
+      const artist = String(track.artistId || track.artist || '').toLocaleLowerCase();
+      if (genre) genreWeights.set(genre, (genreWeights.get(genre) || 0) + weight);
+      if (artist) artistWeights.set(artist, (artistWeights.get(artist) || 0) + weight);
+    });
+
+    const avoidIds = new Set([
+      ...recentTracks.slice(0, 4).map(track => track.id),
+      ...searchedTracks.map(track => track.id)
+    ]);
+    const score = track => {
+      const genre = String(track.genre || '').toLocaleLowerCase();
+      const artist = String(track.artistId || track.artist || '').toLocaleLowerCase();
+      return (genreWeights.get(genre) || 0) * 2 + (artistWeights.get(artist) || 0) * 1.25;
+    };
+
+    let candidates = uniqueTracks.filter(track => !avoidIds.has(track.id));
+    if (candidates.length < 6) candidates = uniqueTracks.filter(track => !searchedTracks.some(item => item.id === track.id));
+    candidates.sort((a, b) => score(b) - score(a));
+
+    // Keep the suggestions varied when there is not enough listening history yet.
+    const recommendations = [];
+    const usedArtists = new Set();
+    candidates.forEach(track => {
+      const artist = String(track.artistId || track.artist || track.id).toLocaleLowerCase();
+      if (recommendations.length < 6 && !usedArtists.has(artist)) {
+        recommendations.push(track);
+        usedArtists.add(artist);
+      }
+    });
+    candidates.forEach(track => {
+      if (recommendations.length < 6 && !recommendations.some(item => item.id === track.id)) recommendations.push(track);
+    });
+    return recommendations;
+  };
+
   const renderSearch = (query = '') => {
     if (!query) {
+      const historyTracks = MusicData.getRecentlyPlayed
+        ? MusicData.getRecentlyPlayed().filter(item => item && item.id).slice(0, 8)
+        : [];
+      const searchedSongs = MusicData.getRecentlySearched
+        ? MusicData.getRecentlySearched().filter(item => item && item.id && (item.type === 'track' || item.audioUrl)).slice(0, 8)
+        : [];
+      const recommendedTracks = getSearchRecommendations();
+      const trackRow = (items, emptyMessage) => items.length
+        ? `<div class="cards-row"><div class="cards-row-inner">${items.map(track => createCard(track, 'track')).join('')}</div></div>`
+        : `<div class="search-landing-empty">${emptyMessage}</div>`;
+
       return `
-        <section class="section">
-          <h2>Browse All</h2>
-          <div class="genre-grid">
-            ${MusicData.genres.map(g => `
-              <div class="genre-card" style="background:${GENRE_COLORS[g] || '#555'}" data-action="browse-genre" data-genre="${esc(g)}">
-                <span>${esc(g)}</span>
-              </div>
-            `).join('')}
-          </div>
-        </section>`;
+        <div class="search-landing home-page-enter">
+          <section class="section">
+            <div class="section-header"><h2>Listening History</h2></div>
+            ${trackRow(historyTracks, 'Songs you play will appear here.')}
+          </section>
+          <section class="section">
+            <div class="section-header"><h2>Previously Searched Songs</h2></div>
+            ${trackRow(searchedSongs, 'Songs you select from search results will appear here.')}
+          </section>
+          <section class="section">
+            <div class="section-header"><h2>Recommended Songs</h2></div>
+            ${trackRow(recommendedTracks, 'Play or like a few songs to get recommendations here.')}
+          </section>
+          <section class="section">
+            <div class="section-header"><h2>Browse All</h2></div>
+            <div class="genre-grid">
+              ${MusicData.genres.map(renderGenreCard).join('')}
+            </div>
+          </section>
+        </div>`;
     }
 
     const local = MusicData.searchLocal(query);
@@ -338,34 +465,38 @@
   // ── View: Library ───────────────────────────────────────────
   const renderLibrary = () => {
     const localTracks = MusicData.getLocalTracks();
-    const playlists = MusicData.getPlaylists().filter(p => p.isUserCreated);
     const allPlaylists = MusicData.getPlaylists();
 
     return `
-      <section style="margin-bottom: 24px;">
-        <h1 style="margin-bottom: 16px; margin-left: -2px;">Your Library</h1>
-        <div class="source-tabs">
-          <button class="source-tab active" data-source="all">All</button>
-          <button class="source-tab" data-source="local">Local</button>
-        </div>
-      </section>
+      <div class="library-page home-page-enter">
+        <section class="section library-header">
+          <div class="library-heading-copy">
+            <h1>Your Library</h1>
+            <p>Playlists, saved music, and files in one place.</p>
+          </div>
+          <div class="source-tabs library-source-tabs" role="group" aria-label="Filter library content">
+            <button class="source-tab active" data-source="all" aria-pressed="true">All</button>
+            <button class="source-tab" data-source="local" aria-pressed="false">Local</button>
+          </div>
+        </section>
 
-      <section class="section" id="library-content">
+        <section class="section library-content" id="library-content">
         <div class="section" data-source-section="playlists">
           <div class="section-header">
             <h2>Playlists</h2>
           </div>
           <div class="cards-row"><div class="cards-row-inner">
-            <div class="card" data-action="create-playlist" style="cursor: pointer; background: linear-gradient(135deg, #8B5CF6, #4b134f); display: flex; align-items: center; justify-content: center; height: 100%; min-height: 150px; border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 10px; color: white;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                <span style="font-size: 18px; font-weight: 600;">Create Playlist</span>
-              </div>
-            </div>
-            <div class="card" data-action="navigate" data-view="liked" data-id="liked" title="Liked Songs">
-              <div class="card-img-wrap" style="background: linear-gradient(135deg, #4b134f 0%, #c94b4b 100%); display:flex; align-items:center; justify-content:center;">
-                <svg viewBox="0 0 24 24" fill="white" style="width: 48px; height: 48px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                <button class="card-play-btn" data-action="play-collection" data-type="liked" data-id="liked" aria-label="Play">
+            <button type="button" class="card library-create-card" data-action="create-playlist" aria-label="Create a playlist">
+              <span class="library-create-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+              </span>
+              <span class="library-create-label">Create playlist</span>
+              <span class="library-create-hint">Build a collection for every mood</span>
+            </button>
+            <div class="card library-collection-card" data-action="navigate" data-view="liked" data-id="liked" title="Liked Songs" aria-label="Open Liked Songs">
+              <div class="card-img-wrap library-collection-art library-liked-art">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <button class="card-play-btn" data-action="play-collection" data-type="liked" data-id="liked" aria-label="Play Liked Songs">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                 </button>
               </div>
@@ -374,10 +505,10 @@
                 <div class="card-subtitle">${MusicData.getLikedSongs().length} songs</div>
               </div>
             </div>
-            <div class="card" data-action="navigate" data-view="downloaded" data-id="downloaded" title="Downloaded Music">
-              <div class="card-img-wrap" style="background: linear-gradient(135deg, #FF2A85 0%, #191414 100%); display:flex; align-items:center; justify-content:center;">
-                <svg viewBox="0 0 24 24" fill="white" style="width: 48px; height: 48px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                <button class="card-play-btn" data-action="play-collection" data-type="downloaded" data-id="downloaded" aria-label="Play">
+            <div class="card library-collection-card" data-action="navigate" data-view="downloaded" data-id="downloaded" title="Downloaded Music" aria-label="Open Downloaded Music">
+              <div class="card-img-wrap library-collection-art library-download-art">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                <button class="card-play-btn" data-action="play-collection" data-type="downloaded" data-id="downloaded" aria-label="Play Downloaded Music">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                 </button>
               </div>
@@ -390,7 +521,7 @@
           </div></div>
         </div>
 
-        <div class="section" data-source-section="local" style="margin-top:2rem">
+        <div class="section" data-source-section="local">
           <div class="section-header">
             <h2>Local Files (${localTracks.length})</h2>
             <label class="import-btn">
@@ -404,64 +535,86 @@
               ${localTracks.map((t, i) => createTrackRow(t, i)).join('')}
             </div>
           ` : `
-            <div class="empty-state">
+            <div class="empty-state library-empty-state">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               <p>No local files yet</p>
-              <p class="empty-hint">import songs from ur device to available songs here</p>
-              <label class="btn btn-primary" style="margin-top: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+              <p class="empty-hint">Import songs from your device to listen here.</p>
+              <label class="btn btn-primary library-empty-import">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Import Files
                 <input type="file" accept="audio/*" multiple hidden data-action="import-files">
               </label>
             </div>
           `}
-        </div>
-      </section>`;
+        </section>
+      </div>`;
   };
 
   // ── View: Downloaded Songs ────────────────────────────────────
   const renderDownloadedSongs = () => {
     const downloadedTracks = MusicData.getDownloadedSongs();
-    
+    const totalDuration = downloadedTracks.reduce((sum, track) => sum + (track.duration || 0), 0);
+    const artwork = downloadedTracks.slice(0, 4);
+
     return `
-      <div class="hero-banner" style="background: linear-gradient(135deg, #FF2A85 0%, #191414 100%)">
-        <div style="width:230px; height:230px; background: rgba(0,0,0,0.3); border-radius:16px; display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-          <svg viewBox="0 0 24 24" fill="white" style="width: 100px; height: 100px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        </div>
-        <div class="hero-info">
-          <span class="hero-type">PLAYLIST</span>
-          <h1 class="hero-title">Downloaded Music</h1>
-          <p class="hero-meta">${downloadedTracks.length} songs</p>
-          <div class="hero-actions">
-            <button class="btn btn-primary btn-play-large" data-action="play-collection" data-type="downloaded" data-id="downloaded" ${downloadedTracks.length === 0 ? 'disabled' : ''}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-              Play
-            </button>
-            <button class="btn btn-outline" data-action="shuffle-collection" data-type="downloaded" data-id="downloaded" ${downloadedTracks.length === 0 ? 'disabled' : ''}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
-              Shuffle
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        ${downloadedTracks.length > 0 ? `
-          <div class="track-list">
-            <div class="track-list-header">
-              <div class="col-idx">#</div>
-              <div class="col-title">Title</div>
-              <div class="col-album">Album</div>
-              <div class="col-duration"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
+      <div class="downloaded-page collection-detail-page">
+        <section class="hero-banner downloaded-hero">
+          <div class="downloaded-art" aria-hidden="true">
+            <div class="downloaded-art-grid ${artwork.length ? `has-art artwork-count-${artwork.length}` : ''}">
+              ${artwork.length ? artwork.map(track => `<img src="${esc(track.coverUrl)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`).join('') : `
+                <svg class="downloaded-art-empty-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              `}
             </div>
-            ${downloadedTracks.map((t, i) => createTrackRow(t, i)).join('')}
+            <span class="downloaded-art-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>
+            </span>
+          </div>
+          <div class="hero-info">
+            <span class="hero-type">YOUR OFFLINE LIBRARY</span>
+            <h1 class="hero-title">Downloaded Music</h1>
+            <p class="hero-description">Your saved tracks, ready to play offline on this device.</p>
+            <div class="downloaded-stats">
+              <span>${downloadedTracks.length} ${downloadedTracks.length === 1 ? 'track' : 'tracks'}</span>
+              ${totalDuration ? `<span>${MusicData.formatDuration(totalDuration)} total</span>` : ''}
+              <span class="downloaded-status ${downloadedTracks.length ? '' : 'no-downloads'}"><i aria-hidden="true"></i> ${downloadedTracks.length ? 'Available offline' : 'No downloads yet'}</span>
+            </div>
+            <div class="hero-actions downloaded-actions">
+              <button class="btn btn-primary btn-play-large" data-action="play-collection" data-type="downloaded" data-id="downloaded" ${downloadedTracks.length === 0 ? 'disabled' : ''}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                Play all
+              </button>
+              <button class="btn btn-outline downloaded-shuffle" data-action="shuffle-collection" data-type="downloaded" data-id="downloaded" ${downloadedTracks.length === 0 ? 'disabled' : ''}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 5 0 0 5M4 20 21 3M4 4l5 5m4 4 8 8m0-5v5h-5"/></svg>
+                Shuffle
+              </button>
+            </div>
+          </div>
+        </section>
+        <section class="downloaded-track-section collection-track-section">
+          <div class="collection-section-heading">
+            <div><h2>Ready to play</h2><p>Every track saved for offline listening</p></div>
+            ${downloadedTracks.length ? `<span>${downloadedTracks.length} ${downloadedTracks.length === 1 ? 'track' : 'tracks'}</span>` : ''}
+          </div>
+        ${downloadedTracks.length > 0 ? `
+          <div class="collection-track-list">
+            <div class="track-list-header">
+              <span class="tlh-num">#</span>
+              <span class="tlh-cover" aria-hidden="true"></span>
+              <span class="tlh-title">Title</span>
+              <span class="tlh-album">Album</span>
+              <span class="tlh-duration"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            </div>
+            <div class="track-list downloaded-track-list">${downloadedTracks.map((t, i) => createTrackRow(t, i, { showCover: true })).join('')}</div>
           </div>
         ` : `
-          <div class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            <p>No downloaded songs yet</p>
-            <p class="empty-hint">Find songs you like and click Download in the menu.</p>
+          <div class="empty-state downloaded-empty">
+            <span class="downloaded-empty-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg></span>
+            <p>Your offline library is ready</p>
+            <p class="empty-hint">Save tracks from any menu and they’ll appear here for offline listening.</p>
+            <button class="btn btn-outline" data-action="navigate" data-view="search">Explore music</button>
           </div>
         `}
+        </section>
       </div>
     `;
   };
@@ -471,39 +624,60 @@
     const likedTracks = MusicData.getLikedSongs();
     
     return `
-      <div class="hero-banner" style="background: linear-gradient(135deg, #4b134f 0%, #c94b4b 100%)">
-        <div style="width:230px; height:230px; background: rgba(0,0,0,0.3); border-radius:16px; display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-          <svg viewBox="0 0 24 24" fill="white" style="width: 100px; height: 100px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-        </div>
-        <div class="hero-info">
-          <span class="hero-type">PLAYLIST</span>
-          <h1 class="hero-title">Liked Songs</h1>
-          <p class="hero-description">The songs you've saved.</p>
-          <div class="hero-meta">${likedTracks.length} songs</div>
-        </div>
-      </div>
-      <div class="playlist-actions">
-        ${likedTracks.length > 0 ? `
-          <button class="btn-play-hero" data-action="play-collection" data-type="liked" data-id="liked">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-          </button>
-        ` : ''}
-      </div>
-      <div class="track-list-header">
-        <span class="tlh-num">#</span>
-        <span class="tlh-title">Title</span>
-        <span class="tlh-album">Album</span>
-        <span class="tlh-duration">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </span>
-      </div>
-      <div class="track-list">
-        ${likedTracks.length > 0 ? likedTracks.map((t, i) => createTrackRow(t, i, { showCover: true })).join('') : `
-          <div class="empty-state">
-            <p>Songs you like will appear here</p>
-            <p class="empty-hint">Save songs by tapping the heart icon.</p>
+      <div class="liked-songs-page home-page-enter">
+        <section class="section liked-songs-hero-section">
+          <div class="hero-banner liked-songs-hero">
+            <div class="liked-songs-art" aria-hidden="true">
+              <span class="liked-songs-art-orbit"></span>
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </div>
+            <div class="hero-info">
+              <span class="hero-type">YOUR COLLECTION</span>
+              <h1 class="hero-title">Liked Songs</h1>
+              <p class="hero-description">The tracks you’ve saved, together in one place.</p>
+              <div class="liked-songs-count">${likedTracks.length} ${likedTracks.length === 1 ? 'song' : 'songs'}</div>
+            </div>
           </div>
-        `}
+          ${likedTracks.length > 0 ? `
+            <div class="playlist-actions liked-songs-actions">
+              <button class="btn-play-hero liked-songs-play-btn" data-action="play-collection" data-type="liked" data-id="liked" aria-label="Play liked songs">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                <span>Play all</span>
+              </button>
+              <button class="btn-shuffle-hero liked-songs-shuffle-btn" data-action="shuffle-collection" data-type="liked" data-id="liked" aria-label="Shuffle liked songs">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="16 16 21 21 21 16"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                <span>Shuffle</span>
+              </button>
+            </div>
+          ` : ''}
+        </section>
+        <section class="section liked-songs-track-section">
+          <div class="liked-songs-section-heading">
+            <h2>In your collection</h2>
+            <span>${likedTracks.length} ${likedTracks.length === 1 ? 'track' : 'tracks'}</span>
+          </div>
+          ${likedTracks.length > 0 ? `
+            <div class="track-list-header">
+              <span class="tlh-num">#</span>
+              <span class="tlh-title">Title</span>
+              <span class="tlh-album">Album</span>
+              <span class="tlh-duration">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+            </div>
+            <div class="track-list liked-songs-track-list">
+              ${likedTracks.map((t, i) => createTrackRow(t, i, { showCover: true })).join('')}
+            </div>
+          ` : `
+            <div class="empty-state liked-songs-empty">
+              <span class="liked-songs-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </span>
+              <p>Your collection starts here</p>
+              <p class="empty-hint">Tap the heart on any track and it will be saved here.</p>
+            </div>
+          `}
+        </section>
       </div>`;
   };
 
@@ -515,7 +689,7 @@
     const totalDuration = playlist.tracks.reduce((sum, t) => sum + (t.duration || 0), 0);
 
     return `
-      <div class="hero-banner" style="background:${playlist.gradient || 'linear-gradient(135deg,#FF2A85,#191414)'}">
+      <div class="hero-banner" style="background:${playlist.gradient || 'linear-gradient(135deg,#68B8EF,#172235)'}">
         <img class="hero-cover" src="${esc(playlist.coverUrl)}" alt="${esc(playlist.name)}" loading="lazy" onerror="this.src='https://picsum.photos/seed/fallback/230/230'">
         <div class="hero-info">
           <span class="hero-type">PLAYLIST</span>
@@ -564,32 +738,44 @@
     const totalDuration = album.tracks.reduce((sum, t) => sum + (t.duration || 0), 0);
 
     return `
-      <div class="hero-banner" style="background:linear-gradient(135deg, rgba(29,185,84,0.3), #121212)">
-        <img class="hero-cover" src="${esc(album.coverUrl)}" alt="${esc(album.title)}" loading="lazy">
-        <div class="hero-info">
-          <span class="hero-type">ALBUM</span>
-          <h1 class="hero-title">${esc(album.title)}</h1>
-          <div class="hero-meta">
-            <span class="hero-artist" data-action="navigate" data-view="artist" data-id="${esc(album.artistId)}">${esc(album.artist)}</span>
-            · ${album.year || ''} · ${album.tracks.length} songs · ${MusicData.formatDuration(totalDuration)}
+      <div class="album-detail-page collection-detail-page">
+        <section class="hero-banner album-detail-hero">
+          <img class="hero-cover" src="${esc(album.coverUrl)}" alt="${esc(album.title)}" loading="lazy" onerror="this.src='https://picsum.photos/seed/album-fallback/300/300'">
+          <div class="hero-info">
+            <span class="hero-type">ALBUM</span>
+            <h1 class="hero-title">${esc(album.title)}</h1>
+            <div class="album-detail-meta">
+              <button class="hero-artist" data-action="navigate" data-view="artist" data-id="${esc(album.artistId)}">${esc(album.artist)}</button>
+              <span>${album.year || 'Album'}</span>
+              <span>${album.tracks.length} ${album.tracks.length === 1 ? 'track' : 'tracks'}</span>
+              <span>${MusicData.formatDuration(totalDuration)}</span>
+            </div>
           </div>
+        </section>
+        <div class="playlist-actions album-detail-actions">
+          <button class="btn-play-hero album-play-button" data-action="play-collection" data-type="album" data-id="${esc(album.id)}" aria-label="Play ${esc(album.title)}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <span>Play album</span>
+          </button>
+          <button class="btn-shuffle-hero album-shuffle-button" data-action="shuffle-collection" data-type="album" data-id="${esc(album.id)}" aria-label="Shuffle ${esc(album.title)}">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 5 0 0 5M4 20 21 3M4 4l5 5m4 4 8 8m0-5v5h-5"/></svg>
+            <span>Shuffle</span>
+          </button>
         </div>
-      </div>
-      <div class="playlist-actions">
-        <button class="btn-play-hero" data-action="play-collection" data-type="album" data-id="${esc(album.id)}">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-        </button>
-      </div>
-      <div class="track-list-header">
-        <span class="tlh-num">#</span>
-        <span class="tlh-title">Title</span>
-        <span class="tlh-album">Album</span>
-        <span class="tlh-duration">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </span>
-      </div>
-      <div class="track-list">
-        ${album.tracks.map((t, i) => createTrackRow(t, i, { showAlbum: false, showCover: false })).join('')}
+        <section class="collection-track-section album-track-section">
+          <div class="collection-section-heading"><div><h2>Tracklist</h2><p>${esc(album.title)} by ${esc(album.artist)}</p></div><span>${album.tracks.length} ${album.tracks.length === 1 ? 'track' : 'tracks'}</span></div>
+          <div class="collection-track-list">
+            <div class="track-list-header">
+              <span class="tlh-num">#</span>
+              <span class="tlh-cover" aria-hidden="true"></span>
+              <span class="tlh-title">Title</span>
+              <span class="tlh-duration"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            </div>
+            <div class="track-list album-track-list">
+              ${album.tracks.map((t, i) => createTrackRow(t, i, { showAlbum: false, showCover: true })).join('')}
+            </div>
+          </div>
+        </section>
       </div>`;
   };
 
@@ -710,7 +896,7 @@
       </div>
       <div class="ctx-item" data-ctx-action="download-track" data-track-id="${esc(track.id)}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        ${MusicData.isDownloaded(track.id) ? 'Remove Download' : 'Download'}
+        ${MusicData.isDownloaded(track.id) ? 'Remove from Aurafy Downloads' : 'Download & save offline'}
       </div>`;
 
     // If there are user playlists, add "Add to Playlist" submenu or just direct items for simplicity.
@@ -739,10 +925,33 @@
       `;
     }
     
-    // Position
-    menu.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
-    menu.style.top = `${Math.min(e.clientY, window.innerHeight - 160)}px`;
+    // Keep the menu above the player bar, and flip it upward for lower rows.
+    menu.style.visibility = 'hidden';
     document.body.appendChild(menu);
+    const menuRect = menu.getBoundingClientRect();
+    const playerBar = document.querySelector('.player-bar');
+    const playerStyle = playerBar ? window.getComputedStyle(playerBar) : null;
+    const playerRect = playerBar && playerStyle?.display !== 'none' && playerStyle?.visibility !== 'hidden'
+      ? playerBar.getBoundingClientRect()
+      : null;
+    const edgeGap = 12;
+    let safeBottom = window.innerHeight - edgeGap;
+    if (playerRect && playerRect.height > 0 && playerRect.top > 0) {
+      safeBottom = Math.min(safeBottom, playerRect.top - edgeGap);
+    }
+    const maxMenuHeight = Math.max(72, safeBottom - edgeGap * 2);
+    menu.style.maxHeight = `${maxMenuHeight}px`;
+    menu.style.overflowY = 'auto';
+    const fittedMenu = menu.getBoundingClientRect();
+    const maxTop = Math.max(edgeGap, safeBottom - fittedMenu.height);
+    let menuTop = e.clientY + 8;
+    if (menuTop > maxTop) menuTop = e.clientY - fittedMenu.height - 8;
+    menuTop = Math.max(edgeGap, Math.min(menuTop, maxTop));
+    const menuLeft = Math.max(edgeGap, Math.min(e.clientX, window.innerWidth - fittedMenu.width - edgeGap));
+    menu.style.left = `${menuLeft}px`;
+    menu.style.top = `${menuTop}px`;
+    menu.style.transformOrigin = menuTop < e.clientY ? 'bottom left' : 'top left';
+    menu.style.visibility = 'visible';
 
     // Close on click outside
     const closeMenu = (ev) => {
@@ -754,7 +963,7 @@
     setTimeout(() => document.addEventListener('click', closeMenu, true), 10);
 
     // Handle ctx clicks
-    menu.addEventListener('click', (ev) => {
+    menu.addEventListener('click', async (ev) => {
       const item = ev.target.closest('.ctx-item');
       if (!item) return;
       const action = item.dataset.ctxAction;
@@ -766,41 +975,18 @@
       } else if (action === 'go-album') {
         window.location.hash = `#album/${item.dataset.albumId}`;
       } else if (action === 'download-track') {
-        let t = MusicData.getTrackById(item.dataset.trackId);
-        if (!t) {
-          const row = document.querySelector(`.track-row[data-track-id="${item.dataset.trackId}"]`);
-          if (row && row.dataset.track) {
-            try { t = JSON.parse(decodeURIComponent(row.dataset.track)); } catch(e) {}
+        if (track) {
+          try {
+            const result = await LocalFiles.downloadTrack(track);
+            const message = result.removed
+              ? 'Removed from Aurafy Downloads. The device file stays on your device.'
+              : result.deviceDownloadStarted
+                ? 'Device download started and saved in Aurafy Downloads.'
+                : 'Saved in Aurafy Downloads, but the device download could not start.';
+            showToast(message);
+          } catch (error) {
+            showToast(error.message || 'Could not save this track offline.');
           }
-        }
-        if (t) {
-          const added = MusicData.toggleDownloaded(t);
-          if (added && t.audioUrl) {
-            // Force external download
-            const safeTitle = (t.title || 'track').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            const filename = `${safeTitle}.mp3`;
-            fetch(t.audioUrl)
-              .then(res => res.blob())
-              .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              }).catch(e => {
-                const a = document.createElement('a');
-                a.href = t.audioUrl;
-                a.target = '_blank';
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-              });
-          }
-          showToast(added ? 'Added to Downloaded Music' : 'Removed from Downloaded Music');
           // Re-render if on downloaded view
           if (window.location.hash === '#downloaded') {
             const contentBody = document.querySelector('.content-body');
@@ -838,9 +1024,16 @@
     const art = document.querySelector('.player-album-art');
     const title = document.querySelector('.player-track-title');
     const artist = document.querySelector('.player-track-artist');
+    const qualityBadges = document.querySelectorAll('.player-quality-badge');
     if (art) { art.src = track.coverUrl; art.alt = track.title; }
     if (title) title.textContent = track.title;
     if (artist) artist.textContent = track.artist;
+    qualityBadges.forEach((badge) => {
+      const quality = track.audioQuality ? `High quality · ${track.audioQuality}` : '';
+      badge.textContent = track.audioQuality || '';
+      badge.title = quality;
+      badge.hidden = !track.audioQuality;
+    });
 
     // Show player bar if hidden
     const bar = document.querySelector('.player-bar');
@@ -849,7 +1042,15 @@
     // Update liked state
     const likeBtns = document.querySelectorAll('.player-btn[data-action="like"]');
     const isLiked = MusicData.isLiked(track.id);
-    likeBtns.forEach(btn => btn.classList.toggle('active', isLiked));
+    likeBtns.forEach(btn => {
+      btn.disabled = false;
+      btn.classList.toggle('active', isLiked);
+      btn.setAttribute('aria-pressed', String(isLiked));
+      btn.setAttribute('aria-label', isLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs');
+      btn.title = isLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs';
+    });
+
+    updateTransportState();
 
     // Update play/pause icon
     updatePlayPauseBtn();
@@ -873,12 +1074,14 @@
     if (!btns.length) return;
     const isPlaying = window.Player && Player.isPlaying;
     const innerHTML = isPlaying
-      ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
-      : '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
+      ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 5.5h3.2c.55 0 1 .45 1 1v11c0 .55-.45 1-1 1H7.5c-.55 0-1-.45-1-1v-11c0-.55.45-1 1-1Zm7.8 0h3.2c.55 0 1 .45 1 1v11c0 .55-.45 1-1 1h-3.2c-.55 0-1-.45-1-1v-11c0-.55.45-1 1-1Z"/></svg>'
+      : '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.25 5.6c0-.76.84-1.22 1.48-.79l9.88 6.4c.58.38.58 1.22 0 1.59l-9.88 6.4c-.64.42-1.48-.03-1.48-.8V5.6Z"/></svg>';
     
     btns.forEach(btn => {
       btn.innerHTML = innerHTML;
       btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+      btn.setAttribute('aria-pressed', String(Boolean(isPlaying)));
+      btn.title = isPlaying ? 'Pause' : 'Play';
     });
 
     const fs = document.querySelector('.fullscreen-player');
@@ -888,158 +1091,423 @@
     }
   };
 
+  const updateTransportState = () => {
+    const hasQueue = Boolean(window.Player && Player.queue && Player.queue.length);
+    document.querySelectorAll('.player-btn[data-action="prev"], .player-btn[data-action="next"]').forEach(btn => {
+      btn.disabled = !hasQueue;
+      btn.setAttribute('aria-disabled', String(!hasQueue));
+    });
+
+    const hasTrack = Boolean(window.Player && Player.currentTrack);
+    document.querySelectorAll('.player-btn[data-action="like"]').forEach(btn => {
+      btn.disabled = !hasTrack;
+      btn.setAttribute('aria-disabled', String(!hasTrack));
+    });
+  };
+
+  const updatePlaybackModeUI = () => {
+    const isShuffle = Boolean(window.Player && Player.isShuffle);
+    document.querySelectorAll('.player-btn[data-action="shuffle"]').forEach(btn => {
+      btn.classList.toggle('active', isShuffle);
+      btn.setAttribute('aria-pressed', String(isShuffle));
+      btn.setAttribute('aria-label', isShuffle ? 'Shuffle on' : 'Shuffle');
+      btn.title = isShuffle ? 'Shuffle on' : 'Shuffle';
+    });
+
+    const repeatMode = window.Player ? Player.repeatMode : 'off';
+    const repeatLabel = repeatMode === 'one' ? 'Repeat one' : repeatMode === 'all' ? 'Repeat all' : 'Repeat: off';
+    document.querySelectorAll('.player-btn[data-action="repeat"]').forEach(btn => {
+      btn.classList.toggle('active', repeatMode !== 'off');
+      btn.classList.toggle('repeat-one', repeatMode === 'one');
+      btn.classList.toggle('repeat-all', repeatMode === 'all');
+      btn.setAttribute('aria-pressed', String(repeatMode !== 'off'));
+      btn.setAttribute('aria-label', repeatLabel);
+      btn.title = repeatLabel;
+    });
+  };
+
   // --- Live Lyrics Logic ---
   let currentLyrics = {
-    lines: [], // array of {time, text}
+    lines: [], // {time, text, words:[{time, endTime, text}]}
     isSynced: false,
-    lastActiveLine: -1
+    hasWordSync: false,
+    lastActiveLine: -1,
+    lastActiveWord: -1,
+    status: 'idle',
+    trackId: null,
+    track: null,
+    syncingWords: false,
+    syncError: ''
+  };
+  let lyricsRequestId = 0;
+  let lyricsRequestController = null;
+  let lyricsWordSyncController = null;
+
+  const parseLrcTime = (minutes, seconds, fraction = '') => {
+    const fractionValue = fraction ? Number(`0.${fraction}`) : 0;
+    return (Number(minutes) * 60) + Number(seconds) + fractionValue;
+  };
+
+  const parseInlineLyricWords = (text, offset = 0) => {
+    const pattern = /<(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?>/g;
+    const markers = Array.from(String(text || '').matchAll(pattern));
+    if (markers.length < 2) return [];
+    return markers.map((marker, index) => {
+      const start = marker.index + marker[0].length;
+      const end = index + 1 < markers.length ? markers[index + 1].index : String(text).length;
+      const value = String(text).slice(start, end);
+      return {
+        time: Math.max(0, parseLrcTime(marker[1], marker[2], marker[3]) + offset),
+        text: value
+      };
+    }).filter(word => word.text.trim());
   };
 
   const parseLyrics = (text) => {
-    const lines = text.split('\n');
+    const source = String(text || '').replace(/^\uFEFF/, '').replace(/\r/g, '');
+    const lines = source.split('\n');
     const parsed = [];
-    const lrcRegex = /^\[(\d{2,}):(\d{2}(?:\.\d{1,4})?)\](.*)/;
-    let isSynced = false;
-    
-    for (let line of lines) {
-      const match = line.match(lrcRegex);
-      if (match) {
-        isSynced = true;
-        const m = parseInt(match[1], 10);
-        const s = parseFloat(match[2]);
-        parsed.push({ time: (m * 60) + s, text: match[3].trim() });
-      } else {
-        const clean = line.replace(/^\[.*?\]/, '').trim();
-        parsed.push({ time: null, text: clean });
+    const timeTag = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+    let offset = 0;
+
+    lines.forEach((line) => {
+      const offsetMatch = line.match(/^\s*\[offset:([+-]?\d+)\]\s*$/i);
+      if (offsetMatch) {
+        offset = Number(offsetMatch[1]) / 1000;
+        return;
       }
-    }
-    return { isSynced, lines: parsed };
+      const tags = Array.from(line.matchAll(timeTag));
+      if (tags.length) {
+        const lyricText = line.replace(timeTag, '').trim();
+        if (!lyricText) return;
+        const words = parseInlineLyricWords(lyricText, offset);
+        tags.forEach(tag => parsed.push({
+          time: Math.max(0, parseLrcTime(tag[1], tag[2], tag[3]) + offset),
+          text: lyricText.replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, '').trim(),
+          words
+        }));
+        return;
+      }
+      // LRC metadata tags are not lyric lines.
+      if (/^\s*\[[a-z]{2,8}:.*\]\s*$/i.test(line)) return;
+      const clean = line.trim();
+      if (clean) parsed.push({ time: null, text: clean, words: [] });
+    });
+
+    const timedCount = parsed.filter(line => Number.isFinite(line.time)).length;
+    const isSynced = timedCount >= 2 && timedCount / Math.max(1, parsed.length) >= 0.7;
+    if (isSynced) parsed.sort((a, b) => a.time - b.time);
+    else parsed.forEach(line => { line.time = null; line.words = []; });
+    return {
+      isSynced,
+      hasWordSync: isSynced && parsed.some(line => line.words.length > 1),
+      lines: parsed
+    };
   };
 
-  const loadLyrics = async (track) => {
-    currentLyrics.lines = [];
-    currentLyrics.isSynced = false;
-    currentLyrics.lastActiveLine = -1;
-    renderLyrics();
-    if (!track || !track.id) return;
+  const lyricsTextForAlignment = (lines) => (Array.isArray(lines) ? lines : []).map(line => String(line && line.text || '')).join('\n');
+  const lyricsSyncButton = () => document.getElementById('lyrics-sync-words');
 
-    const lyricsText = await MusicData.getSongLyrics(track.id, track);
-    if (!lyricsText) {
-      currentLyrics.lines = [{ time: null, text: 'Lyrics not available' }];
+  const updateLyricsSyncAction = () => {
+    const button = lyricsSyncButton();
+    if (!button) return;
+    const track = currentLyrics.track || (window.Player && Player.currentTrack);
+    const audioUrl = String(track && track.audioUrl || '');
+    const available = currentLyrics.status === 'line-synced' && !currentLyrics.hasWordSync &&
+      !currentLyrics.syncingWords && track && track.source === 'saavn' && /^https:\/\//i.test(audioUrl) &&
+      window.hasServerGroqKey !== false;
+    button.hidden = !available;
+    button.disabled = Boolean(currentLyrics.syncingWords);
+    if (!currentLyrics.syncingWords) {
+      button.innerHTML = currentLyrics.syncError
+        ? '<span class="lyrics-word-sync-icon" aria-hidden="true">✦</span><span>Try word sync again</span>'
+        : '<span class="lyrics-word-sync-icon" aria-hidden="true">✦</span><span>Sync words</span>';
+    }
+    button.title = currentLyrics.syncError || 'Click to send this Saavn audio URL and a lyric excerpt to Groq for word timing. Successful timings are saved on this device.';
+  };
+
+  const restoreCachedWordSync = (track, lines) => {
+    if (!track || !track.id || !MusicData.getLyricsWordSync) return lines;
+    const cached = MusicData.getLyricsWordSync(track.id, lyricsTextForAlignment(lines));
+    if (!Array.isArray(cached) || cached.length !== lines.length) return lines;
+    return lines.map((line, index) => {
+      const saved = cached[index];
+      return saved && saved.text === line.text && Array.isArray(saved.words) ? { ...line, words: saved.words } : line;
+    });
+  };
+
+  const normalizeSyncToken = (value) => String(value || '')
+    .normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+  const syncTokenSimilarity = (left, right) => {
+    if (!left || !right) return 0;
+    if (left === right) return 1;
+    if (Math.min(left.length, right.length) < 4) return 0;
+    let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+    for (let row = 1; row <= left.length; row += 1) {
+      const current = [row];
+      for (let column = 1; column <= right.length; column += 1) {
+        current[column] = Math.min(current[column - 1] + 1, previous[column] + 1,
+          previous[column - 1] + (left[row - 1] === right[column - 1] ? 0 : 1));
+      }
+      previous = current;
+    }
+    return 1 - previous[right.length] / Math.max(left.length, right.length);
+  };
+
+  const alignLyricsToTranscriptWords = (lines, transcriptWords, duration) => {
+    const recognized = (Array.isArray(transcriptWords) ? transcriptWords : [])
+      .map(item => ({ key: normalizeSyncToken(item && (item.word || item.text)), time: Number(item && item.start), endTime: Number(item && item.end) }))
+      .filter(item => item.key && Number.isFinite(item.time) && Number.isFinite(item.endTime) && item.endTime >= item.time)
+      .sort((a, b) => a.time - b.time);
+    if (recognized.length < 8) return null;
+
+    const alignedLines = lines.map(line => ({ ...line, words: [] }));
+    let transcriptCursor = 0;
+    let lyricTokenCount = 0;
+    let alignedTokenCount = 0;
+    let alignedLineCount = 0;
+    lines.forEach((line, lineIndex) => {
+      if (!Number.isFinite(line.time)) return;
+      const parts = String(line.text || '').match(/\S+\s*/gu) || [];
+      const lyricTokens = parts.map((text, partIndex) => ({ text, partIndex, key: normalizeSyncToken(text) })).filter(token => token.key);
+      lyricTokenCount += lyricTokens.length;
+      if (!lyricTokens.length) return;
+
+      const nextTimedLine = lines.slice(lineIndex + 1).find(nextLine => Number.isFinite(nextLine.time));
+      const lowerBound = Math.max(0, line.time - 0.85);
+      const upperBound = nextTimedLine ? nextTimedLine.time + 0.4 : (Number(duration) || line.time + 12);
+      while (transcriptCursor < recognized.length && recognized[transcriptCursor].endTime < lowerBound) transcriptCursor += 1;
+      let windowEnd = transcriptCursor;
+      while (windowEnd < recognized.length && recognized[windowEnd].time <= upperBound) windowEnd += 1;
+      if (windowEnd <= transcriptCursor) return;
+
+      const matchedWords = new Map();
+      let searchCursor = transcriptCursor;
+      for (const token of lyricTokens) {
+        let bestIndex = -1;
+        let bestScore = 0;
+        const searchEnd = Math.min(windowEnd, searchCursor + 7);
+        for (let index = searchCursor; index < searchEnd; index += 1) {
+          const score = syncTokenSimilarity(token.key, recognized[index].key);
+          if (score > bestScore) { bestScore = score; bestIndex = index; }
+          if (score === 1) break;
+        }
+        if (bestIndex >= 0 && bestScore >= 0.76) {
+          matchedWords.set(token.partIndex, recognized[bestIndex]);
+          searchCursor = bestIndex + 1;
+        }
+      }
+
+      const neededMatches = lyricTokens.length === 1 ? 1 : Math.max(2, Math.ceil(lyricTokens.length * 0.65));
+      if (matchedWords.size >= neededMatches) {
+        alignedLineCount += 1;
+        alignedTokenCount += matchedWords.size;
+        alignedLines[lineIndex].words = parts.map((text, partIndex) => {
+          const timing = matchedWords.get(partIndex);
+          return timing ? { text, time: timing.time, endTime: timing.endTime } : { text, time: null, endTime: null };
+        });
+        transcriptCursor = Math.max(transcriptCursor, searchCursor);
+      }
+    });
+
+    if (alignedLineCount < 3 || alignedTokenCount < 8 || alignedTokenCount / Math.max(1, lyricTokenCount) < 0.45) return null;
+    return alignedLines;
+  };
+
+  const generateWordSync = async () => {
+    const button = lyricsSyncButton();
+    const track = currentLyrics.track || (window.Player && Player.currentTrack);
+    if (!button || !track || currentLyrics.status !== 'line-synced' || currentLyrics.syncingWords) return;
+    const syncState = currentLyrics;
+    const wordSyncController = new AbortController();
+    lyricsWordSyncController = wordSyncController;
+    currentLyrics.syncingWords = true;
+    currentLyrics.syncError = '';
+    button.hidden = false;
+    button.disabled = true;
+    button.innerHTML = '<span class="lyrics-loader" aria-hidden="true"></span><span>Analyzing audio…</span>';
+    button.title = 'Analyzing this audio stream for word timestamps.';
+    setLyricsStatus('loading', 'Analyzing words');
+    try {
+      const languageMap = { hindi: 'hi', punjabi: 'pa', bengali: 'bn', tamil: 'ta', telugu: 'te', urdu: 'ur', marathi: 'mr', gujarati: 'gu', kannada: 'kn', malayalam: 'ml', english: 'en' };
+      const rawLanguage = String(track.genre || '').trim().toLowerCase();
+      const language = languageMap[rawLanguage] || (/^[a-z]{2}$/.test(rawLanguage) ? rawLanguage : '');
+      const lyrics = lyricsTextForAlignment(currentLyrics.lines);
+      const response = await fetch('/api/lyrics/word-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioUrl: track.audioUrl, title: track.title, artist: track.artist, language, duration: Number(track.duration) || 0, lyrics }),
+        signal: wordSyncController.signal
+      });
+      if (currentLyrics !== syncState) return;
+      const result = await response.json().catch(() => ({}));
+      if (currentLyrics !== syncState) return;
+      const apiError = typeof result.error === 'string' ? result.error : result.error && result.error.message;
+      if (!response.ok) throw new Error(apiError || `Word sync failed (${response.status}).`);
+      const aligned = alignLyricsToTranscriptWords(currentLyrics.lines, result.words, Player.getProgress().total || track.duration);
+      if (!aligned) throw new Error('The audio words did not match these lyrics closely enough. Line sync is still active.');
+
+      currentLyrics.lines = aligned;
+      currentLyrics.hasWordSync = true;
+      currentLyrics.status = 'word-synced';
+      currentLyrics.lastActiveLine = -1;
+      currentLyrics.lastActiveWord = -1;
+      if (MusicData.saveLyricsWordSync) MusicData.saveLyricsWordSync(track.id, lyrics, aligned);
+      setLyricsStatus('word-synced', 'Word synced');
       renderLyrics();
+      updateLyricsScroll(Player.getProgress().current, Player.getProgress().total);
+    } catch (error) {
+      if ((error && error.name === 'AbortError') || currentLyrics !== syncState) return;
+      currentLyrics.syncError = error.message || 'Word sync could not be generated. Line timing remains available.';
+      setLyricsStatus('line-synced', 'Line synced');
+      button.innerHTML = '<span class="lyrics-word-sync-icon" aria-hidden="true">✦</span><span>Try word sync again</span>';
+    } finally {
+      syncState.syncingWords = false;
+      if (currentLyrics === syncState) {
+        updateLyricsSyncAction();
+        if (currentLyrics.hasWordSync) button.hidden = true;
+        else button.disabled = false;
+      }
+      if (lyricsWordSyncController === wordSyncController) lyricsWordSyncController = null;
+    }
+  };
+
+  const setLyricsStatus = (state, message) => {
+    const status = document.getElementById('lyrics-sync-status');
+    const label = document.getElementById('lyrics-sync-label');
+    if (!status || !label) return;
+    status.dataset.state = state;
+    label.textContent = message;
+    status.setAttribute('aria-label', message);
+  };
+
+  const lyricsMessage = (title, message, state = 'empty') => {
+    const container = document.getElementById('lyrics-content');
+    if (!container) return;
+    container.innerHTML = `<div class="lyrics-state lyrics-state-${state}"><span class="lyrics-state-icon" aria-hidden="true">${state === 'loading' ? '<span class="lyrics-loader"></span>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 5h8M8 9h8M8 13h5M6 3h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke-linecap="round" stroke-linejoin="round"/></svg>'}</span><strong>${esc(title)}</strong><span>${esc(message)}</span></div>`;
+  };
+
+  const syncWordsButton = lyricsSyncButton();
+  if (syncWordsButton) syncWordsButton.addEventListener('click', generateWordSync);
+  document.addEventListener('server:config', updateLyricsSyncAction);
+
+  const loadLyrics = async (track) => {
+    if (lyricsRequestController) lyricsRequestController.abort();
+    if (lyricsWordSyncController) lyricsWordSyncController.abort();
+    lyricsWordSyncController = null;
+    lyricsRequestController = new AbortController();
+    const requestId = ++lyricsRequestId;
+    currentLyrics = { lines: [], isSynced: false, hasWordSync: false, lastActiveLine: -1, lastActiveWord: -1, status: 'loading', trackId: track && track.id || null, track: track || null, syncingWords: false, syncError: '' };
+    updateLyricsSyncAction();
+    setLyricsStatus('loading', 'Loading lyrics');
+    lyricsMessage('Finding the right lyrics', 'Checking this track against its title, artist, and duration.', 'loading');
+    if (!track || !track.id) {
+      currentLyrics.status = 'empty';
+      setLyricsStatus('empty', 'No track');
+      lyricsMessage('Nothing playing yet', 'Start a song to view its lyrics.');
       return;
     }
 
-    const parsedData = parseLyrics(lyricsText);
-    currentLyrics.isSynced = parsedData.isSynced;
-    
-    const pureText = parsedData.lines.map(l => l.text).join('\n');
-    const hasHindi = /[\u0900-\u097F]/.test(pureText);
-    
-    if (hasHindi) {
-      currentLyrics.lines = [{ time: null, text: 'Romanizing to English... Please wait' }];
-      renderLyrics();
-      
-      try {
-        const engText = await MusicData.romanizeToEnglish(pureText);
-        const engLinesText = engText.split('\n');
-        currentLyrics.lines = parsedData.lines.map((l, i) => ({ time: l.time, text: engLinesText[i] || l.text }));
-        renderLyrics();
-      } catch (err) {
-        // Fallback to original (which might be Native Hindi) if Romanization fails
-        currentLyrics.lines = parsedData.lines; 
-        renderLyrics();
+    try {
+      const result = await MusicData.getSongLyrics(track.id, track, { signal: lyricsRequestController.signal });
+      if (requestId !== lyricsRequestId) return;
+      if (result && result.instrumental) {
+        currentLyrics.status = 'instrumental';
+        setLyricsStatus('plain', 'Instrumental');
+        lyricsMessage('Instrumental track', 'There are no vocal lyrics to display.');
+        return;
       }
-    } else {
+      const parsedData = result && Array.isArray(result.lines)
+        ? { lines: result.lines, isSynced: Boolean(result.isSynced), hasWordSync: Boolean(result.hasWordSync) }
+        : parseLyrics(result && result.lyrics || '');
+      if (!parsedData.lines.length) {
+        currentLyrics.status = 'empty';
+        setLyricsStatus('empty', 'Lyrics unavailable');
+        lyricsMessage('Lyrics not available', 'We couldn’t find a reliable lyric match for this track.');
+        return;
+      }
       currentLyrics.lines = parsedData.lines;
+      currentLyrics.isSynced = parsedData.isSynced;
+      currentLyrics.hasWordSync = parsedData.hasWordSync;
+      if (currentLyrics.isSynced && !currentLyrics.hasWordSync) {
+        currentLyrics.lines = restoreCachedWordSync(track, currentLyrics.lines);
+        currentLyrics.hasWordSync = currentLyrics.lines.some(line => Array.isArray(line.words) && line.words.some(word => Number.isFinite(word.time)));
+      }
+      currentLyrics.status = currentLyrics.isSynced ? (currentLyrics.hasWordSync ? 'word-synced' : 'line-synced') : 'plain';
+      setLyricsStatus(currentLyrics.hasWordSync ? 'word-synced' : currentLyrics.isSynced ? 'line-synced' : 'plain',
+        currentLyrics.hasWordSync ? 'Word synced' : currentLyrics.isSynced ? 'Line synced' : 'Lyrics only');
+      updateLyricsSyncAction();
       renderLyrics();
+      updateLyricsScroll(Player.getProgress().current, Player.getProgress().total);
+    } catch (err) {
+      if (requestId !== lyricsRequestId || (err && err.name === 'AbortError')) return;
+      currentLyrics.status = 'error';
+      setLyricsStatus('error', 'Could not load lyrics');
+      lyricsMessage('Lyrics couldn’t load', 'Check your connection and try another track.', 'error');
     }
   };
-
-  window.UI = { setLyricsLanguage: () => {} }; // Dummy object to prevent app.js error since we removed it
   
   const renderLyrics = () => {
     const container = document.getElementById('lyrics-content');
     if (!container) return;
-    
+
     container.innerHTML = currentLyrics.lines.map((lineObj, i) => {
-      const txt = lineObj.text.trim() || '&nbsp;';
-      return `<div class="lyric-line" data-index="${i}">${txt}</div>`;
+      const words = Array.isArray(lineObj.words) ? lineObj.words : [];
+      const hasTimedWords = words.some(word => Number.isFinite(word.time));
+      const text = currentLyrics.hasWordSync && words.length
+        ? words.map((word, wordIndex) => `<span class="lyric-word" data-word-index="${wordIndex}"${Number.isFinite(word.time) ? ` data-word-time="${word.time}"` : ''}>${esc(word.text)}</span>`).join('')
+        : esc(lineObj.text);
+      return `<div class="lyric-line${currentLyrics.isSynced ? ' is-timed' : ' is-untimed'}${hasTimedWords ? ' has-word-timing' : ''}" data-index="${i}"${Number.isFinite(lineObj.time) ? ` data-time="${lineObj.time}"` : ''}>${text || '&nbsp;'}</div>`;
     }).join('');
   };
 
   const updateLyricsScroll = (current, total) => {
-    if (!currentLyrics.lines.length || !total) return;
-    
-    const totalLines = currentLyrics.lines.length;
-    let currentLineIdx = 0;
-
-    if (currentLyrics.isSynced) {
-      // Find the last lyric line whose time is <= current
-      for (let i = 0; i < totalLines; i++) {
-        if (currentLyrics.lines[i].time !== null && currentLyrics.lines[i].time <= current) {
-          currentLineIdx = i;
-        } else if (currentLyrics.lines[i].time > current) {
-          break; // Stop once we exceed current time
-        }
-      }
-    } else {
-      // Fallback proportional sync
-      const introTime = total * 0.10;
-      const outroTime = total * 0.05;
-      const lyricsTime = total - introTime - outroTime;
-      
-      if (current > introTime) {
-        let pct = (current - introTime) / lyricsTime;
-        if (pct > 1) pct = 1;
-        currentLineIdx = Math.floor(pct * totalLines);
-        if (currentLineIdx >= totalLines) currentLineIdx = totalLines - 1;
-      }
+    if (!currentLyrics.isSynced || !currentLyrics.lines.length) return;
+    let currentLineIdx = -1;
+    for (let i = 0; i < currentLyrics.lines.length; i++) {
+      const lineTime = currentLyrics.lines[i].time;
+      if (Number.isFinite(lineTime) && lineTime <= current) currentLineIdx = i;
+      else if (Number.isFinite(lineTime) && lineTime > current) break;
     }
-    
-    if (currentLyrics.lastActiveLine === currentLineIdx) return;
-    currentLyrics.lastActiveLine = currentLineIdx;
-    
+
     const linesElements = document.querySelectorAll('.lyric-line');
     if (!linesElements.length) return;
-    
-    linesElements.forEach(l => l.classList.remove('active'));
-    
-    const activeEl = linesElements[currentLineIdx];
-    if (activeEl) {
-      activeEl.classList.add('active');
-      
-      const scrollBox = document.getElementById('lyrics-scroll-box');
-      if (scrollBox) {
-        // Calculate precise offset to prevent parent scrolling
-        const offset = activeEl.offsetTop - (scrollBox.clientHeight / 2) + (activeEl.clientHeight / 2);
-        scrollBox.scrollTo({ top: offset, behavior: 'smooth' });
+    const lineChanged = currentLyrics.lastActiveLine !== currentLineIdx;
+    if (lineChanged) {
+      linesElements.forEach(line => {
+        line.classList.remove('active');
+        line.querySelectorAll('.lyric-word.active').forEach(word => word.classList.remove('active'));
+      });
+      currentLyrics.lastActiveLine = currentLineIdx;
+      currentLyrics.lastActiveWord = -1;
+      const activeLine = currentLineIdx >= 0 ? linesElements[currentLineIdx] : null;
+      if (activeLine) {
+        activeLine.classList.add('active');
+        const scrollBox = document.getElementById('lyrics-scroll-box');
+        if (scrollBox) {
+          const offset = activeLine.offsetTop - (scrollBox.clientHeight / 2) + (activeLine.clientHeight / 2);
+          scrollBox.scrollTo({ top: offset, behavior: 'smooth' });
+        }
       }
+    }
+
+    const activeLine = currentLineIdx >= 0 ? currentLyrics.lines[currentLineIdx] : null;
+    const wordIndex = activeLine && currentLyrics.hasWordSync
+      ? activeLine.words.reduce((found, word, index) => Number.isFinite(word.time) && word.time <= current ? index : found, -1)
+      : -1;
+    if (wordIndex !== currentLyrics.lastActiveWord) {
+      linesElements.forEach(line => line.querySelectorAll('.lyric-word.active').forEach(word => word.classList.remove('active')));
+      if (currentLineIdx >= 0 && wordIndex >= 0) {
+        const activeWord = linesElements[currentLineIdx].querySelector(`[data-word-index="${wordIndex}"]`);
+        if (activeWord) activeWord.classList.add('active');
+      }
+      currentLyrics.lastActiveWord = wordIndex;
     }
   };
   // -------------------------
 
   const updateProgress = (current, total) => {
-    // --- AUTO-SYNC GENERATION LOGIC ---
-    if (total > 0 && currentLyrics && !currentLyrics.isSynced && currentLyrics.lines.length > 1) {
-      const isActuallyUnsynced = currentLyrics.lines.some(l => l.time === null);
-      if (isActuallyUnsynced) {
-        const totalChars = currentLyrics.lines.reduce((sum, l) => sum + (l.text ? l.text.length : 0), 0);
-        const introTime = total * 0.10;
-        const usableTime = total * 0.85;
-        let currentTimeAcc = introTime;
-        
-        currentLyrics.lines = currentLyrics.lines.map(line => {
-          const lineTime = currentTimeAcc;
-          const charCount = line.text ? line.text.length : 0;
-          const lineDur = totalChars > 0 ? (charCount / totalChars) * usableTime : 1;
-          currentTimeAcc += lineDur;
-          return { time: lineTime, text: line.text };
-        });
-        currentLyrics.isSynced = true;
-      }
-    }
-    // ----------------------------------
     const fill = document.querySelector('.progress-bar-fill');
     const fills = document.querySelectorAll('.progress-bar-fill, .player-mini-progress-fill');
     const curEl = document.querySelector('.player-time-current');
@@ -1062,6 +1530,14 @@
   const updateVolumeUI = (vol) => {
     const fill = document.querySelector('.volume-bar-fill');
     if (fill) fill.style.width = `${vol * 100}%`;
+
+    const volumeButton = document.querySelector('.volume-btn');
+    if (volumeButton) {
+      const isMuted = vol === 0;
+      volumeButton.setAttribute('aria-label', isMuted ? 'Unmute' : 'Mute');
+      volumeButton.setAttribute('aria-pressed', String(isMuted));
+      volumeButton.title = isMuted ? 'Unmute' : 'Mute';
+    }
     
     // Toggle volume icons
     const iconHigh = document.querySelector('.icon-volume-high');
@@ -1133,58 +1609,150 @@
     }
   };
 
-  // ── Render Search Dropdown (Live Search) ──────────────────
-  const renderSearchDropdown = (results) => {
+  // ── Render Search Dropdown (Live Search + recent songs) ────
+  const renderRecentSongSearches = () => {
+    const recentSongs = (MusicData.getRecentlySearched ? MusicData.getRecentlySearched() : [])
+      .filter(item => item && item.id && (item.type === 'track' || item.audioUrl))
+      .slice(0, 6);
+
+    if (!recentSongs.length) {
+      return '<div class="search-history-empty"><span class="search-history-empty-icon" aria-hidden="true">⌕</span><strong>No recent song searches</strong><span>Your searched songs will appear here.</span></div>';
+    }
+
+    return '<section class="search-dropdown-section search-history-section" role="group" aria-label="Recently searched songs">' +
+      '<div class="search-dropdown-section-title"><span>Recently searched</span><span class="search-dropdown-count">' + recentSongs.length + '</span></div>' +
+      recentSongs.map((track, index) => {
+        const title = track.title || track.name || 'Untitled track';
+        const subtitle = [track.artist, track.album].filter(Boolean).join(' · ');
+        return '<div class="search-dropdown-item search-history-item" role="option" aria-selected="false" tabindex="-1" data-search-option="true" id="search-option-recent-' + index + '"' +
+          ' data-search-history="true" data-action="play-track" data-track-id="' + esc(track.id) + '" data-track="' + esc(JSON.stringify(track)) + '">' +
+          '<img class="search-dropdown-img" src="' + esc(track.coverUrl || track.imageUrl || '') + '" alt="" loading="lazy" onerror="this.src=\'https://picsum.photos/seed/recent-song/40/40\'">' +
+          '<div class="search-dropdown-info"><span class="search-dropdown-title">' + esc(title) + '</span><span class="search-dropdown-subtitle">' + esc(subtitle || 'Song') + '</span></div>' +
+          '<svg class="search-history-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg></div>';
+      }).join('') + '</section>';
+  };
+
+  const renderSearchDropdown = (results, query = '') => {
+    if (!String(query || '').trim()) return renderRecentSongSearches();
     if (!results) return '';
-    const hasTracks = results.tracks && results.tracks.length > 0;
-    const hasAlbums = results.albums && results.albums.length > 0;
-    const hasArtists = results.artists && results.artists.length > 0;
 
-    let html = '';
+    const normalize = (value) => String(value || '')
+      .normalize('NFKD')
+      .replace(/\p{M}/gu, '')
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+    const queryText = normalize(query);
+    const queryTokens = queryText.split(/\s+/).filter(Boolean);
+    if (!queryText) return '<div class="search-dropdown-status">Enter a song, artist, or album name to see matches.</div>';
 
-    if (hasTracks) {
-      html += '<div class="search-dropdown-section-title">Songs</div>';
-      html += results.tracks.slice(0, 5).map(t => `
-        <div class="search-dropdown-item" data-action="play-track" data-track-id="${esc(t.id)}" data-track='${esc(JSON.stringify(t))}'>
-          <img class="search-dropdown-img" src="${esc(t.coverUrl)}" alt="" onerror="this.src='https://picsum.photos/seed/fallback/40/40'">
-          <div class="search-dropdown-info">
-            <span class="search-dropdown-title">${esc(t.title)}</span>
-            <span class="search-dropdown-subtitle">${esc(t.artist)}</span>
-          </div>
-        </div>
-      `).join('');
-    }
+    const scoreItem = (primary, secondary) => {
+      const title = normalize(primary);
+      const detail = normalize(secondary);
+      const titleWords = title.split(/\s+/).filter(Boolean);
+      const detailWords = detail.split(/\s+/).filter(Boolean);
+      let score = 0;
 
-    if (hasAlbums) {
-      html += '<div class="search-dropdown-section-title">Albums</div>';
-      html += results.albums.slice(0, 3).map(a => `
-        <div class="search-dropdown-item" data-action="navigate" data-view="album" data-id="${esc(a.id)}">
-          <img class="search-dropdown-img" src="${esc(a.coverUrl)}" alt="" onerror="this.src='https://picsum.photos/seed/fallback/40/40'">
-          <div class="search-dropdown-info">
-            <span class="search-dropdown-title">${esc(a.title)}</span>
-            <span class="search-dropdown-subtitle">Album · ${esc(a.artist)}</span>
-          </div>
-        </div>
-      `).join('');
-    }
+      if (title === queryText) score += 160;
+      else if (title.startsWith(queryText)) score += 125;
+      else if (titleWords.some(word => word.startsWith(queryText))) score += 100;
+      else if (title.includes(queryText)) score += 78;
 
-    if (hasArtists) {
-      html += '<div class="search-dropdown-section-title">Artists</div>';
-      html += results.artists.slice(0, 3).map(a => `
-        <div class="search-dropdown-item" data-action="navigate" data-view="artist" data-id="${esc(a.id)}">
-          <img class="search-dropdown-img round" src="${esc(a.imageUrl)}" alt="" onerror="this.src='https://picsum.photos/seed/fallback/40/40'">
-          <div class="search-dropdown-info">
-            <span class="search-dropdown-title">${esc(a.name)}</span>
-            <span class="search-dropdown-subtitle">Artist</span>
-          </div>
-        </div>
-      `).join('');
-    }
+      if (detail === queryText) score += 82;
+      else if (detail.startsWith(queryText)) score += 66;
+      else if (detailWords.some(word => word.startsWith(queryText))) score += 52;
+      else if (detail.includes(queryText)) score += 34;
 
-    if (!html) {
-      html = '<div class="search-dropdown-section-title" style="text-transform:none">No results found</div>';
-    }
+      let matchedTokens = 0;
+      queryTokens.forEach((token) => {
+        if (titleWords.includes(token)) {
+          score += 18;
+          matchedTokens += 1;
+        } else if (titleWords.some(word => word.startsWith(token))) {
+          score += 12;
+          matchedTokens += 1;
+        } else if (detailWords.includes(token)) {
+          score += 9;
+          matchedTokens += 1;
+        } else if (detailWords.some(word => word.startsWith(token))) {
+          score += 6;
+          matchedTokens += 1;
+        }
+      });
+      if (queryTokens.length && matchedTokens === queryTokens.length) score += 24;
+      return score;
+    };
 
+    const rank = (items, primary, secondary) => (Array.isArray(items) ? items : [])
+      .map((item, index) => ({ item, index, score: scoreItem(primary(item), secondary(item)) }))
+      .filter(entry => entry.score > 0)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map(entry => entry.item);
+
+    const highlight = (value) => {
+      const text = String(value || '');
+      const terms = String(query || '').trim().split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
+      const match = terms.map(term => {
+        const index = text.toLocaleLowerCase().indexOf(term.toLocaleLowerCase());
+        return index < 0 ? null : { index, length: term.length };
+      }).find(Boolean);
+      if (!match) return esc(text);
+      return esc(text.slice(0, match.index)) +
+        '<mark class="search-match">' + esc(text.slice(match.index, match.index + match.length)) + '</mark>' +
+        esc(text.slice(match.index + match.length));
+    };
+
+    const tracks = rank(results.tracks, item => item.title, item => item.artist + ' ' + item.album).slice(0, 5);
+    const albums = rank(results.albums, item => item.title, item => item.artist).slice(0, 3);
+    const artists = rank(results.artists, item => item.name, () => '').slice(0, 3);
+    const hasResults = tracks.length + albums.length + artists.length > 0;
+    const section = (title, items, renderItem) => {
+      if (!items.length) return '';
+      return '<section class="search-dropdown-section" role="group" aria-label="' + title + '"><div class="search-dropdown-section-title" aria-hidden="true">' +
+        '<span>' + title + '</span><span class="search-dropdown-count">' + items.length + '</span></div>' +
+        items.map(renderItem).join('') + '</section>';
+    };
+    const optionAttrs = (type, index) =>
+      ' role="option" aria-selected="false" tabindex="-1" data-search-option="true" id="search-option-' + type + '-' + index + '"';
+
+    let html = '<div class="search-dropdown-summary">' +
+      (hasResults ? 'Best matches, ranked by title and artist' :
+        (results.unavailable ? 'Search is temporarily unavailable' : 'No close matches found')) +
+      '</div>';
+
+    const songsSection = () => section('Songs', tracks, (track, index) =>
+      '<div class="search-dropdown-item"' + optionAttrs('song', index) +
+      ' data-action="play-track" data-track-id="' + esc(track.id) + '" data-track="' + esc(JSON.stringify(track)) + '">' +
+      '<img class="search-dropdown-img" src="' + esc(track.coverUrl) + '" alt="" loading="lazy" onerror="this.src=\'https://picsum.photos/seed/fallback/40/40\'">' +
+      '<div class="search-dropdown-info"><span class="search-dropdown-title">' + highlight(track.title) +
+      '</span><span class="search-dropdown-subtitle">' + highlight(track.artist) +
+      (track.album ? ' · ' + esc(track.album) : '') + '</span></div></div>');
+
+    const artistsSection = () => section('Artists', artists, (artist, index) =>
+      '<div class="search-dropdown-item"' + optionAttrs('artist', index) +
+      ' data-action="navigate" data-view="artist" data-id="' + esc(artist.id) + '">' +
+      '<img class="search-dropdown-img round" src="' + esc(artist.imageUrl) + '" alt="" loading="lazy" onerror="this.src=\'https://picsum.photos/seed/fallback/40/40\'">' +
+      '<div class="search-dropdown-info"><span class="search-dropdown-title">' + highlight(artist.name) +
+      '</span><span class="search-dropdown-subtitle">Artist</span></div></div>');
+
+    const albumsSection = () => section('Albums', albums, (album, index) =>
+      '<div class="search-dropdown-item"' + optionAttrs('album', index) +
+      ' data-action="navigate" data-view="album" data-id="' + esc(album.id) + '">' +
+      '<img class="search-dropdown-img" src="' + esc(album.coverUrl) + '" alt="" loading="lazy" onerror="this.src=\'https://picsum.photos/seed/fallback/40/40\'">' +
+      '<div class="search-dropdown-info"><span class="search-dropdown-title">' + highlight(album.title) +
+      '</span><span class="search-dropdown-subtitle">Album · ' + highlight(album.artist) +
+      '</span></div></div>');
+
+    const relevantSections = [
+      { score: tracks.length ? scoreItem(tracks[0].title, tracks[0].artist + ' ' + tracks[0].album) : -1, render: songsSection },
+      { score: artists.length ? scoreItem(artists[0].name, '') : -1, render: artistsSection },
+      { score: albums.length ? scoreItem(albums[0].title, albums[0].artist) : -1, render: albumsSection }
+    ].filter(item => item.score >= 0).sort((a, b) => b.score - a.score);
+    html += relevantSections.map(item => item.render()).join('');
+
+    html += '<button type="button" class="search-dropdown-more"' + optionAttrs('all', 0) +
+      ' data-action="search-all"><span>Search all results for <strong>' + esc(query) +
+      '</strong></span><span class="search-dropdown-enter">Enter ↵</span></button>';
     return html;
   };
 
@@ -1192,6 +1760,7 @@
   // ── Public API ──────────────────────────────────────────────
   window.UI = {
     renderHome,
+    renderHomeLoadingSkeleton,
     renderSearch,
     renderLibrary,
     renderLikedSongs,
@@ -1207,6 +1776,8 @@
     showContextMenu,
     updatePlayerUI,
     updatePlayPauseBtn,
+    updateTransportState,
+    updatePlaybackModeUI,
     updateProgress,
     updateVolumeUI,
     setActiveNav,

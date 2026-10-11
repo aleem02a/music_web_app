@@ -8,21 +8,59 @@
   // ── State ───────────────────────────────────────────────────
   let currentView = 'home';
   let searchDebounceTimer = null;
-  const DEBOUNCE_MS = 350;
+  let navigationGeneration = 0;
+  let hasHydratedHome = false;
+  let fullscreenReturnFocus = null;
+  const DEBOUNCE_MS = 200;
 
   const setFullscreenOpen = (isOpen) => {
     const fs = document.querySelector('.fullscreen-player');
     if (!fs) return;
+    const isCurrentlyOpen = fs.classList.contains('active');
+    if (isOpen && !isCurrentlyOpen) fullscreenReturnFocus = document.activeElement;
+
     fs.classList.toggle('active', isOpen);
     fs.setAttribute('aria-hidden', String(!isOpen));
+    if (isOpen) {
+      fs.removeAttribute('inert');
+      fs.setAttribute('aria-modal', 'true');
+      window.requestAnimationFrame(() => {
+        if (!fs.classList.contains('active')) return;
+        (fs.querySelector('.fs-player-close') || fs).focus();
+      });
+    } else {
+      fs.setAttribute('inert', '');
+      fs.removeAttribute('aria-modal');
+      if (isCurrentlyOpen && fullscreenReturnFocus && fullscreenReturnFocus.isConnected) {
+        fullscreenReturnFocus.focus();
+      }
+      fullscreenReturnFocus = null;
+    }
+
     if (isOpen && window.Player && window.Player.currentTrack && window.UI) {
       window.UI.updatePlayerUI(window.Player.currentTrack);
     }
   };
 
+  // Track the actually visible viewport: mobile browser chrome and the on-screen
+  // keyboard can make the visual viewport shorter than the CSS layout viewport.
+  let viewportSyncFrame = 0;
+  const syncVisualViewportHeight = () => {
+    if (viewportSyncFrame) return;
+    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+    viewportSyncFrame = schedule(() => {
+      viewportSyncFrame = 0;
+      const visibleHeight = window.visualViewport?.height || window.innerHeight;
+      if (visibleHeight > 0) {
+        document.documentElement.style.setProperty('--app-viewport-height', `${Math.round(visibleHeight)}px`);
+      }
+    });
+  };
+
   // ── Device Detection & View Transfer ─────────────────────────
   const updateViewMode = () => {
-    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTouchTablet = navigator.maxTouchPoints > 1 && window.innerWidth <= 1180;
+    const isMobile = window.innerWidth <= 768 || isTouchTablet || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
         document.body.classList.add('mobile-view-active');
         document.body.classList.remove('desktop-view-active');
@@ -36,19 +74,32 @@
   window.addEventListener('resize', () => {
     clearTimeout(window.resizeTimer);
     window.resizeTimer = setTimeout(updateViewMode, 100);
+    syncVisualViewportHeight();
   });
+  window.addEventListener('orientationchange', syncVisualViewportHeight);
+  window.visualViewport?.addEventListener('resize', syncVisualViewportHeight);
+  syncVisualViewportHeight();
   updateViewMode();
   document.addEventListener('DOMContentLoaded', updateViewMode);
 
   // ── Router ──────────────────────────────────────────────────
   const parseHash = () => {
-    const hash = window.location.hash.replace('#', '') || 'home';
-    const parts = hash.split('/');
+    let rawHash = window.location.hash.replace('#', '') || 'home';
+
+    // Handle Supabase OAuth callback tokens in hash
+    if (rawHash.startsWith('access_token=') || rawHash.includes('&access_token=') || rawHash.startsWith('refresh_token=')) {
+      return { view: 'account', id: '', query: '', isOAuthCallback: true };
+    }
+    if (rawHash.startsWith('error=') || rawHash.includes('&error=')) {
+      return { view: 'login', id: '', query: '', isOAuthError: true };
+    }
+
+    const parts = rawHash.split('/');
     const view = parts[0].split('?')[0];
     const id = parts[1] || '';
 
     // Extract query param for search
-    const qMatch = hash.match(/[?&]q=([^&]*)/);
+    const qMatch = rawHash.match(/[?&]q=([^&]*)/);
     const query = qMatch ? decodeURIComponent(qMatch[1]) : '';
 
     return { view, id, query };
@@ -66,12 +117,22 @@
     const contentBody = document.querySelector('.content-body');
     if (!contentBody) return;
 
+    const isAuthPage = ['login', 'signup', 'account'].includes(view);
+    document.body.classList.toggle('auth-page-active', isAuthPage);
+    if (isAuthPage) {
+      contentBody.scrollLeft = 0;
+      document.querySelector('.app')?.scrollTo({ left: 0 });
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+    }
+
     const navBackBtn = document.getElementById('nav-back-btn');
     if (navBackBtn) {
       navBackBtn.style.display = view === 'home' ? 'none' : 'flex';
     }
 
     currentView = view;
+    const viewGeneration = ++navigationGeneration;
     UI.setActiveNav(view);
 
     // Scroll to top
@@ -83,9 +144,24 @@
     contentBody.classList.add('content-loaded');
 
     switch (view) {
+      case 'login':
+      case 'signup':
+      case 'account':
+        contentBody.innerHTML = window.AuthManager ? window.AuthManager.renderPage(view) : '';
+        break;
       case 'home':
-        contentBody.innerHTML = UI.renderHome();
-        loadTrendingAsync();
+        if (!hasHydratedHome) {
+          contentBody.innerHTML = UI.renderHome({ homeLoading: true });
+          window.setTimeout(() => {
+            if (viewGeneration !== navigationGeneration || currentView !== 'home' || !contentBody.isConnected) return;
+            hasHydratedHome = true;
+            contentBody.innerHTML = UI.renderHome({ trendingLoading: true });
+            loadTrendingAsync();
+          }, 260);
+        } else {
+          contentBody.innerHTML = UI.renderHome({ trendingLoading: true });
+          loadTrendingAsync();
+        }
         break;
       case 'search':
         contentBody.innerHTML = UI.renderSearch(query);
@@ -133,17 +209,32 @@
   };
 
   // ── Async loaders for Saavn content ────────────────────────
+  let trendingLoadGeneration = 0;
   const loadTrendingAsync = async () => {
+    const generation = ++trendingLoadGeneration;
+    const container = document.querySelector('.trending-grid');
+    if (!container) return;
+
+    const renderCards = (cardsHtml) => {
+      if (generation !== trendingLoadGeneration || !container.isConnected) return;
+      container.setAttribute('aria-busy', 'false');
+      container.innerHTML = cardsHtml
+        ? `<div class="content-loaded" style="display:contents">${cardsHtml}</div>`
+        : '<p class="trending-empty-state">Trending music is unavailable right now.</p>';
+    };
+
     try {
       const trendingTracks = await MusicData.getTrendingTracks();
       if (trendingTracks.length > 0) {
-        const trContainer = document.querySelector('.trending-grid');
-        if (trContainer) {
-          trContainer.innerHTML = `<div class="content-loaded" style="display:contents">${trendingTracks.slice(0, 6).map(t => UI.createCard(t, 'track')).join('')}</div>`;
-        }
+        renderCards(trendingTracks.slice(0, 6).map(t => UI.createCard(t, 'track')).join(''));
+      } else {
+        const fallbackAlbums = MusicData.getAlbums().slice(0, 6);
+        renderCards(fallbackAlbums.map(album => UI.createCard(album, 'album')).join(''));
       }
     } catch (err) {
       console.warn('Failed to load trending:', err);
+      const fallbackAlbums = MusicData.getAlbums().slice(0, 6);
+      renderCards(fallbackAlbums.map(album => UI.createCard(album, 'album')).join(''));
     }
   };
 
@@ -224,9 +315,9 @@
 
     const action = target.dataset.action;
 
-    // Track recently searched item if clicked from search results
-    if (currentView === 'search' && window.MusicData && MusicData.addRecentlySearched) {
-      const itemStr = target.dataset.item || target.dataset.track;
+    // Record selected items only from actual search results, not from recommendations or history.
+    if (currentView === 'search' && target.closest('#search-results, #saavn-results-container') && window.MusicData && MusicData.addRecentlySearched) {
+      const itemStr = target.dataset.item || target.dataset.track || target.closest('.card')?.dataset.item;
       if (itemStr) {
         try { 
           const parsed = JSON.parse(itemStr);
@@ -261,9 +352,19 @@
         const trackId = target.dataset.trackId;
         const track = resolveTrack(trackId, target);
         if (track) {
-          const added = MusicData.toggleDownloaded(track);
-          if (window.UI) {
-            UI.showToast(added ? "Added to Downloaded Music" : "Removed from Downloaded Music");
+          try {
+            const result = await LocalFiles.downloadTrack(track);
+            if (window.UI) {
+              const message = result.removed
+                ? 'Removed from Aurafy Downloads. The device file stays on your device.'
+                : result.deviceDownloadStarted
+                  ? 'Device download started and saved in Aurafy Downloads.'
+                  : 'Saved in Aurafy Downloads, but the device download could not start.';
+              UI.showToast(message);
+            }
+            if (currentView === 'downloaded') renderView();
+          } catch (error) {
+            if (window.UI) UI.showToast(error.message || 'Could not save this track offline.');
           }
         }
         break;
@@ -419,8 +520,11 @@
 
   window.applySourceFilter = (source) => {
     // Update all tabs visually
-    document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll(`.source-tab[data-source="${source}"]`).forEach(t => t.classList.add('active'));
+    document.querySelectorAll('.source-tab').forEach(t => {
+      const isActive = t.dataset.source === source;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-pressed', String(isActive));
+    });
 
     const contentBody = document.querySelector('.content-body');
     if (!contentBody) return;
@@ -428,10 +532,15 @@
     // Only apply in library view sections
     const sections = contentBody.querySelectorAll('.section[data-source-section]');
     sections.forEach(sec => {
-      if (source === 'all') {
+      const shouldShow = source === 'all' || sec.dataset.sourceSection === source;
+      if (shouldShow) {
         sec.style.display = 'block';
+        sec.classList.remove('source-section-enter');
+        void sec.offsetWidth;
+        sec.classList.add('source-section-enter');
       } else {
-        sec.style.display = sec.dataset.sourceSection === source ? 'block' : 'none';
+        sec.style.display = 'none';
+        sec.classList.remove('source-section-enter');
       }
     });
 
@@ -479,17 +588,15 @@
         else if (action === 'prev') Player.previous();
         else if (action === 'shuffle') {
           Player.toggleShuffle();
-          playerBtn.classList.toggle('active', Player.isShuffle);
         }
         else if (action === 'repeat') {
           Player.cycleRepeat();
-          playerBtn.classList.remove('repeat-one', 'repeat-all');
-          if (Player.repeatMode === 'one') playerBtn.classList.add('active', 'repeat-one');
-          else if (Player.repeatMode === 'all') playerBtn.classList.add('active', 'repeat-all');
-          else playerBtn.classList.remove('active');
         }
         else if (action === 'fullscreen') {
           setFullscreenOpen(true);
+        }
+        else if (action === 'pip') {
+          Player.openPictureInPicture();
         }
         else if (action === 'mute') {
           Player.toggleMute();
@@ -502,6 +609,9 @@
           if (!Player.currentTrack) return;
           const isNowLiked = MusicData.toggleLiked(Player.currentTrack);
           playerBtn.classList.toggle('active', isNowLiked);
+          playerBtn.setAttribute('aria-pressed', String(isNowLiked));
+          playerBtn.setAttribute('aria-label', isNowLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs');
+          playerBtn.title = isNowLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs';
           if (window.UI) window.UI.showToast(isNowLiked ? 'Added to Liked Songs' : 'Removed from Liked Songs');
         }
         return;
@@ -519,7 +629,7 @@
       }
 
       // Player bar click on mobile → open fullscreen player
-      if (window.innerWidth <= 768) {
+      if (document.body.classList.contains('mobile-view-active')) {
         const isClickableBtn = e.target.closest('.player-btn') || e.target.closest('.player-btn-main') || e.target.closest('.player-mini-progress') || e.target.closest('.progress-bar');
         if (!isClickableBtn && e.target.closest('.player-bar')) {
           setFullscreenOpen(true);
@@ -621,7 +731,16 @@
       UI.updateVolumeUI(e.detail.volume);
     });
 
+    document.addEventListener('player:shufflechange', () => {
+      UI.updatePlaybackModeUI();
+    });
+
+    document.addEventListener('player:repeatchange', () => {
+      UI.updatePlaybackModeUI();
+    });
+
     document.addEventListener('player:queuechange', () => {
+      UI.updateTransportState();
       // Re-render queue view if currently on it
       if (currentView === 'queue') {
         const contentBody = document.querySelector('.content-body');
@@ -638,6 +757,56 @@
     const searchClear = document.querySelector('.search-clear-btn');
     if (!searchInput) return;
 
+    let searchRequestId = 0;
+    let activeSearchController = null;
+    let activeSuggestionIndex = -1;
+    const searchResultCache = new Map();
+    const SEARCH_CACHE_TTL_MS = 45000;
+    const setDropdownOpen = (isOpen) => {
+      if (searchDropdown) searchDropdown.classList.toggle('active', isOpen);
+      searchInput.setAttribute('aria-expanded', String(isOpen));
+      if (!isOpen) {
+        activeSuggestionIndex = -1;
+        searchInput.removeAttribute('aria-activedescendant');
+        getSearchOptions().forEach(option => {
+          option.classList.remove('is-active');
+          option.setAttribute('aria-selected', 'false');
+        });
+      }
+    };
+    const getSearchOptions = () => searchDropdown
+      ? Array.from(searchDropdown.querySelectorAll('[data-search-option="true"]'))
+      : [];
+    const showRecentSearches = () => {
+      if (!searchDropdown || !window.UI || !UI.renderSearchDropdown) return;
+      searchDropdown.innerHTML = UI.renderSearchDropdown(null, '');
+      setDropdownOpen(true);
+    };
+    const setActiveSuggestion = (index) => {
+      const options = getSearchOptions();
+      if (!options.length) {
+        activeSuggestionIndex = -1;
+        searchInput.removeAttribute('aria-activedescendant');
+        return;
+      }
+      activeSuggestionIndex = (index + options.length) % options.length;
+      options.forEach((option, optionIndex) => {
+        const isActive = optionIndex === activeSuggestionIndex;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-selected', String(isActive));
+      });
+      const activeOption = options[activeSuggestionIndex];
+      searchInput.setAttribute('aria-activedescendant', activeOption.id);
+      activeOption.scrollIntoView({ block: 'nearest' });
+    };
+    const cancelSearch = () => {
+      clearTimeout(searchDebounceTimer);
+      searchRequestId += 1;
+      activeSuggestionIndex = -1;
+      if (activeSearchController) activeSearchController.abort();
+      activeSearchController = null;
+    };
+
     // Set initial state of search clear button
     if (searchClear) {
       searchClear.style.display = searchInput.value.trim() ? 'flex' : 'none';
@@ -646,86 +815,109 @@
     searchInput.addEventListener('input', () => {
       clearTimeout(searchDebounceTimer);
       const q = searchInput.value.trim();
-      
-      if (searchClear) {
-        searchClear.style.display = q ? 'flex' : 'none';
-      }
-      
-      // Immediately show loading skeleton in dropdown
-      if (q && searchDropdown) {
-        searchDropdown.innerHTML = `<div class="search-dropdown-loading">${UI.renderSearchDropdownLoading()}</div>`;
-        searchDropdown.classList.add('active');
-      }
-      
-      searchDebounceTimer = setTimeout(async () => {
-        if (q && searchDropdown) {
-          const results = await MusicData.searchSaavn(q);
-          searchDropdown.innerHTML = UI.renderSearchDropdown(results);
-          searchDropdown.classList.add('active');
-        } else if (searchDropdown) {
-          searchDropdown.classList.remove('active');
+      const requestId = ++searchRequestId;
+      activeSuggestionIndex = -1;
+      if (activeSearchController) activeSearchController.abort();
+      activeSearchController = null;
+
+      if (searchClear) searchClear.style.display = q ? 'flex' : 'none';
+      if (!searchDropdown) return;
+      if (!q) {
+        if (document.activeElement === searchInput) showRecentSearches();
+        else {
           searchDropdown.innerHTML = '';
+          setDropdownOpen(false);
+        }
+        return;
+      }
+      if (q.length < 2) {
+        searchDropdown.innerHTML = '<div class="search-dropdown-status">Type at least 2 letters to see close matches.</div>';
+        setDropdownOpen(true);
+        return;
+      }
+
+      const cacheKey = q.normalize('NFKC').toLocaleLowerCase();
+      const cached = searchResultCache.get(cacheKey);
+      if (cached && Date.now() - cached.savedAt < SEARCH_CACHE_TTL_MS) {
+        searchDropdown.innerHTML = UI.renderSearchDropdown(cached.results, q);
+        setDropdownOpen(true);
+        return;
+      }
+      if (cached) searchResultCache.delete(cacheKey);
+
+      searchDropdown.innerHTML = '<div class="search-dropdown-loading">' + UI.renderSearchDropdownLoading() + '</div>';
+      setDropdownOpen(true);
+      searchDebounceTimer = setTimeout(async () => {
+        const controller = new AbortController();
+        activeSearchController = controller;
+        try {
+          const results = await MusicData.searchSaavn(q, { signal: controller.signal });
+          if (requestId !== searchRequestId || searchInput.value.trim() !== q) return;
+          activeSearchController = null;
+          if (results && !results.unavailable) {
+            searchResultCache.set(cacheKey, { results, savedAt: Date.now() });
+            if (searchResultCache.size > 30) searchResultCache.delete(searchResultCache.keys().next().value);
+          }
+          searchDropdown.innerHTML = UI.renderSearchDropdown(results, q);
+          setDropdownOpen(true);
+        } catch (error) {
+          if (requestId !== searchRequestId || (error && error.name === 'AbortError')) return;
+          activeSearchController = null;
+          searchDropdown.innerHTML = '<div class="search-dropdown-status">Could not load matches. Press Enter to search all results.</div>';
+          setDropdownOpen(true);
         }
       }, DEBOUNCE_MS);
     });
 
     searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const options = getSearchOptions();
+        if (searchDropdown && searchDropdown.classList.contains('active') && options.length) {
+          e.preventDefault();
+          const direction = e.key === 'ArrowDown' ? 1 : -1;
+          setActiveSuggestion(activeSuggestionIndex < 0
+            ? (direction > 0 ? 0 : options.length - 1)
+            : activeSuggestionIndex + direction);
+        }
+        return;
+      }
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (activeSuggestionIndex >= 0) {
+          const activeOption = getSearchOptions()[activeSuggestionIndex];
+          if (activeOption) {
+            activeOption.click();
+            return;
+          }
+        }
         const q = searchInput.value.trim();
-        if (searchDropdown) searchDropdown.classList.remove('active');
+        cancelSearch();
+        setDropdownOpen(false);
         if (q) navigate('search', '', { query: q });
         else navigate('search');
         searchInput.blur();
+      } else if (e.key === 'Escape') {
+        setDropdownOpen(false);
       }
     });
 
     searchInput.addEventListener('focus', () => {
-      if (searchInput.value.trim() && searchDropdown) {
-        searchDropdown.classList.add('active');
+      if (searchInput.value.trim() && searchDropdown && searchDropdown.innerHTML) {
+        setDropdownOpen(true);
+      } else if (!searchInput.value.trim()) {
+        showRecentSearches();
       }
     });
 
-    let currentZoom = 100;
-    const updateZoom = (delta) => {
-      currentZoom += delta;
-      if (currentZoom < 25) currentZoom = 25;
-      if (currentZoom > 500) currentZoom = 500;
-      document.body.style.zoom = `${currentZoom}%`;
-      const text = document.getElementById('zoom-level-text');
-      if (text) text.textContent = `${currentZoom}%`;
-    };
+    searchInput.addEventListener('click', () => {
+      if (!searchInput.value.trim() && searchDropdown && !searchDropdown.classList.contains('active')) {
+        showRecentSearches();
+      }
+    });
 
     document.addEventListener('click', (e) => {
-      const actionBtn = e.target.closest('.more-menu-action');
-      if (actionBtn) {
-        const action = actionBtn.dataset.action;
-        if (action === 'zoom-in') updateZoom(10);
-        if (action === 'zoom-out') updateZoom(-10);
-        if (action === 'native-fullscreen') {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => console.warn(err.message));
-          } else {
-            document.exitFullscreen();
-          }
-        }
-        // don't close menu if just zooming
-        if (action.startsWith('zoom')) return;
-      }
-
       if (!e.target.closest('.search-container') && searchDropdown) {
-        searchDropdown.classList.remove('active');
-      }
-      
-      // Header More Menu
-      const moreBtn = e.target.closest('#header-more-btn');
-      const moreMenu = document.getElementById('header-dropdown');
-      if (moreMenu) {
-        if (moreBtn) {
-          moreMenu.style.display = (moreMenu.style.display === 'none' || moreMenu.style.display === '') ? 'block' : 'none';
-        } else if (!e.target.closest('#header-more-menu') && !actionBtn) {
-          moreMenu.style.display = 'none';
-        }
+        setDropdownOpen(false);
       }
     });
 
@@ -736,15 +928,19 @@
         const action = target.dataset.action;
         
         // Track recently searched item
-        const itemStr = target.dataset.item;
+        const itemStr = target.dataset.item || target.dataset.track;
         if (itemStr && window.MusicData && MusicData.addRecentlySearched) {
-          try { MusicData.addRecentlySearched(JSON.parse(itemStr)); } catch(e) {}
+          try {
+            const searchedItem = JSON.parse(itemStr);
+            searchedItem.type = searchedItem.type || (target.dataset.trackId ? 'track' : 'album');
+            MusicData.addRecentlySearched(searchedItem);
+          } catch(e) {}
         }
         
         if (action === 'navigate') {
           const view = target.dataset.view;
           const id = target.dataset.id || '';
-          searchDropdown.classList.remove('active');
+          setDropdownOpen(false);
           searchInput.value = '';
           navigate(view, id);
         } else if (action === 'play-track') {
@@ -753,26 +949,29 @@
           if (track) {
             Player.setQueue([track], 0);
           }
-          searchDropdown.classList.remove('active');
+          setDropdownOpen(false);
         } else if (action === 'play-track-data') {
           const trackDataStr = target.dataset.track;
           if (trackDataStr) {
              const trackData = JSON.parse(trackDataStr);
              Player.setQueue([trackData], 0);
           }
-          searchDropdown.classList.remove('active');
+          setDropdownOpen(false);
+        } else if (action === 'search-all') {
+          const q = searchInput.value.trim();
+          setDropdownOpen(false);
+          if (q) navigate('search', '', { query: q });
+          searchInput.blur();
         }
       });
     }
 
     if (searchClear) {
       searchClear.addEventListener('click', () => {
+        cancelSearch();
         searchInput.value = '';
         searchClear.style.display = 'none'; // Hide when cleared
-        if (searchDropdown) {
-          searchDropdown.classList.remove('active');
-          searchDropdown.innerHTML = '';
-        }
+        showRecentSearches();
         if (currentView === 'search') navigate('search');
         searchInput.focus();
       });
@@ -795,7 +994,6 @@
 
         recognition.onresult = async (event) => {
           const transcript = event.results[0][0].transcript;
-          const apiKey = (localStorage.getItem('groq_api_key') || '').trim();
 
           if (!window.AIService) {
             window.UI.showToast('AI service is not available.');
@@ -803,15 +1001,18 @@
           } else {
             searchInput.placeholder = "AI is thinking...";
             try {
-              const intent = await window.AIService.parseVoiceIntent(transcript, apiKey);
-              if (intent.type === 'search') {
-                searchInput.value = intent.query;
+              const intent = await window.AIService.parseVoiceIntent(transcript);
+              if (intent && intent.type === 'search' && typeof intent.query === 'string') {
+                searchInput.value = intent.query.slice(0, 200);
                 searchInput.dispatchEvent(new Event('input'));
-              } else if (intent.type === 'playlist') {
+              } else if (intent && intent.type === 'playlist' && typeof intent.query === 'string') {
                 const aiTrigger = document.querySelector('.js-ai-playlist-trigger');
                 if (aiTrigger) aiTrigger.click();
                 const aiInput = document.getElementById('ai-playlist-input');
-                if (aiInput) aiInput.value = intent.query;
+                if (aiInput) aiInput.value = intent.query.slice(0, 500);
+              } else {
+                searchInput.value = transcript.slice(0, 200);
+                searchInput.dispatchEvent(new Event('input'));
               }
             } catch (err) {
               console.error("AI Error:", err);
@@ -880,46 +1081,6 @@
 
     // Header navigation (removed nav arrows)
     
-    // Sidebar toggle and Auto Adjust Mechanism
-    const autoAdjustLayout = () => {
-      // Force window resize event to let any dynamic scrollbars or elements auto-adjust
-      window.dispatchEvent(new Event('resize'));
-      
-      // Auto adjust the main content scrolling bar to prevent clipping or glitches
-      const mainContent = document.querySelector('.main-content');
-      const contentBody = document.querySelector('.content-body');
-      if (mainContent && contentBody) {
-        // Force reflow
-        void mainContent.offsetHeight;
-        void contentBody.offsetHeight;
-      }
-    };
-
-    const toggleSidebar = () => {
-      document.getElementById('app').classList.toggle('sidebar-hidden');
-      
-      // Trigger auto adjust immediately for instant responsiveness
-      autoAdjustLayout();
-      
-      // Trigger again continuously during the CSS transition to ensure scrolling bar stays glued
-      let start = performance.now();
-      const step = (timestamp) => {
-        if (timestamp - start < 400) { // 400ms covers the duration-slow transition
-          autoAdjustLayout();
-          requestAnimationFrame(step);
-        } else {
-          autoAdjustLayout(); // Final precise adjustment
-        }
-      };
-      requestAnimationFrame(step);
-    };
-
-    const sidebarToggleBtn = document.getElementById('sidebar-menu-toggle-btn');
-    if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    
-    const headerToggleBtn = document.getElementById('header-menu-toggle-btn');
-    if (headerToggleBtn) headerToggleBtn.addEventListener('click', toggleSidebar);
-
     const navBackBtn = document.getElementById('nav-back-btn');
     if (navBackBtn) {
       navBackBtn.addEventListener('click', () => {
@@ -935,8 +1096,37 @@
   // ── Keyboard shortcuts ──────────────────────────────────────
   const setupKeyboard = () => {
     document.addEventListener('keydown', (e) => {
-      // Don't trigger shortcuts when typing in inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const fullscreenPlayer = document.querySelector('.fullscreen-player.active');
+      if (e.key === 'Escape' && fullscreenPlayer) {
+        e.preventDefault();
+        setFullscreenOpen(false);
+        return;
+      }
+
+      if (e.key === 'Tab' && fullscreenPlayer) {
+        const focusable = Array.from(fullscreenPlayer.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter((element) => !element.hidden && element.getClientRects().length > 0);
+        if (!focusable.length) {
+          e.preventDefault();
+          fullscreenPlayer.querySelector('.fs-player-close')?.focus();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && (document.activeElement === first || !fullscreenPlayer.contains(document.activeElement))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (document.activeElement === last || !fullscreenPlayer.contains(document.activeElement))) {
+          e.preventDefault();
+          first.focus();
+        }
+        return;
+      }
+
+      // Don't steal keys from text fields or focused controls/content actions.
+      if (e.target.isContentEditable || e.target.closest('input, textarea, select, button, a, [role="button"], [role="link"]')) return;
 
       switch (e.key) {
         case ' ':
@@ -979,10 +1169,39 @@
         case 'Q':
           navigate('queue');
           break;
-        case 'Escape':
-          setFullscreenOpen(false);
-          break;
       }
+    });
+  };
+
+  const setupActionKeyboardAccess = () => {
+    const enhance = (root) => {
+      if (!root || root.nodeType !== 1) return;
+      const items = [];
+      if (root.matches('[data-action]')) items.push(root);
+      items.push(...root.querySelectorAll('[data-action]'));
+      items.forEach((item) => {
+        if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL)$/.test(item.tagName)) return;
+        if (!item.hasAttribute('tabindex')) item.tabIndex = 0;
+        if (!item.hasAttribute('role')) item.setAttribute('role', item.dataset.action === 'navigate' ? 'link' : 'button');
+      });
+    };
+
+    enhance(document.getElementById('app'));
+    const appRoot = document.getElementById('app');
+    if (appRoot && window.MutationObserver) {
+      const observer = new MutationObserver((records) => {
+        records.forEach(record => record.addedNodes.forEach(enhance));
+      });
+      observer.observe(appRoot, { childList: true, subtree: true });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
+      const action = event.target.closest && event.target.closest('[data-action]');
+      if (!action || !action.hasAttribute('tabindex')) return;
+      if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(action.tagName)) return;
+      event.preventDefault();
+      action.click();
     });
   };
 
@@ -1030,6 +1249,8 @@
             localTab.click();
           }
         }
+      } else if (currentView === 'downloaded') {
+        renderView();
       }
     });
   };
@@ -1077,30 +1298,25 @@
     const settingsModal = document.getElementById('settings-modal');
     const settingsClose = document.getElementById('settings-close');
     const settingsSave = document.getElementById('settings-save');
-    const apiKeyInput = document.getElementById('groq-api-key-input');
+    const aiConfigStatus = document.getElementById('ai-config-status');
     
     if (settingsBtn && settingsModal) {
       settingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        apiKeyInput.value = localStorage.getItem('groq_api_key') || '';
-        if (window.hasServerGroqKey) {
-          apiKeyInput.placeholder = "Configured via Server Environment Variable";
-        } else {
-          apiKeyInput.placeholder = "Paste your API key here...";
+        if (aiConfigStatus) {
+          aiConfigStatus.textContent = window.hasServerGroqKey
+            ? 'AI features are ready.'
+            : 'AI features are unavailable until the server is configured.';
         }
         settingsModal.classList.remove('hidden');
-        document.getElementById('header-dropdown').style.display = 'none';
+        document.getElementById('account-modal')?.classList.add('hidden');
       });
       
       const closeSettings = () => settingsModal.classList.add('hidden');
       if (settingsClose) settingsClose.addEventListener('click', closeSettings);
       settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
       
-      settingsSave.addEventListener('click', () => {
-        localStorage.setItem('groq_api_key', apiKeyInput.value.trim());
-        if (window.UI) window.UI.showToast("Settings saved!");
-        closeSettings();
-      });
+      if (settingsSave) settingsSave.addEventListener('click', closeSettings);
     }
 
     // --- AI Playlist Modal ---
@@ -1113,7 +1329,6 @@
     const aiStatus = document.getElementById('ai-playlist-status');
 
     if (aiTriggers.length && aiModal && aiInput && aiSubmit) {
-      const getGroqApiKey = () => (localStorage.getItem('groq_api_key') || '').trim();
       const setAiStatus = (message = '', tone = 'neutral') => {
         if (!aiStatus) return;
         aiStatus.textContent = message;
@@ -1151,11 +1366,14 @@
 
       const submitAiPlaylist = async () => {
         const prompt = aiInput.value.trim();
-        const apiKey = getGroqApiKey();
 
         if (!prompt) {
           setAiStatus('Describe a vibe, genre, mood, or theme first.', 'error');
           aiInput.focus();
+          return;
+        }
+        if (prompt.length > 500) {
+          setAiStatus('Keep playlist prompts under 500 characters.', 'error');
           return;
         }
 
@@ -1167,36 +1385,58 @@
         setAiBusy(true);
 
         try {
-          const aiResult = await window.AIService.generatePlaylistFromPrompt(prompt, apiKey);
-          const songs = Array.isArray(aiResult.songs) ? aiResult.songs.filter(Boolean).slice(0, 10) : [];
+          const aiResult = await window.AIService.generatePlaylistFromPrompt(prompt);
+          const songs = Array.isArray(aiResult.songs)
+            ? [...new Set(aiResult.songs.filter(song => typeof song === 'string').map(song => song.trim()).filter(Boolean))].slice(0, 10)
+            : [];
           if (!songs.length) {
             throw new Error('The AI response did not include any songs.');
           }
 
-          const newPlaylist = MusicData.createPlaylist(aiResult.title || prompt);
-          newPlaylist.description = aiResult.description || '';
+          const newPlaylist = MusicData.createPlaylist(typeof aiResult.title === 'string' && aiResult.title.trim() ? aiResult.title.trim().slice(0, 80) : prompt.slice(0, 80));
+          newPlaylist.description = typeof aiResult.description === 'string' ? aiResult.description.slice(0, 240) : '';
           let addedCount = 0;
-          
-          for (const songQuery of songs) {
-            setAiStatus(`Searching: ${songQuery}`);
-            const searchRes = await MusicData.searchSaavn(songQuery);
-            if (searchRes.tracks && searchRes.tracks.length > 0) {
-              MusicData.addTrackToPlaylist(newPlaylist.id, searchRes.tracks[0]);
-              addedCount += 1;
-            }
+
+          const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+          const matchScore = (query, track) => {
+            const queryTerms = new Set(normalize(query));
+            const trackTerms = new Set(normalize(`${track.title} ${track.artist}`));
+            if (!queryTerms.size || !trackTerms.size) return 0;
+            let overlap = 0;
+            queryTerms.forEach(term => { if (trackTerms.has(term)) overlap++; });
+            return overlap / queryTerms.size;
+          };
+          for (let offset = 0; offset < songs.length; offset += 3) {
+            const batch = songs.slice(offset, offset + 3);
+            setAiStatus(`Finding matching tracks (${Math.min(offset + batch.length, songs.length)} of ${songs.length})…`);
+            const searchResults = await Promise.all(batch.map(songQuery => MusicData.searchSaavn(songQuery)));
+            searchResults.forEach((searchRes, index) => {
+              const candidates = Array.isArray(searchRes && searchRes.tracks) ? searchRes.tracks : [];
+              const bestMatch = candidates
+                .map(track => ({ track, score: matchScore(batch[index], track) }))
+                .sort((a, b) => b.score - a.score)[0];
+              if (bestMatch && bestMatch.score >= 0.35 && !newPlaylist.tracks.some(track => track.id === bestMatch.track.id)) {
+                MusicData.addTrackToPlaylist(newPlaylist.id, bestMatch.track);
+                addedCount += 1;
+              }
+            });
+          }
+
+          if (addedCount < songs.length && addedCount > 0) {
+            newPlaylist.description = `${newPlaylist.description}${newPlaylist.description ? ' ' : ''}${addedCount} of ${songs.length} suggested tracks matched.`;
           }
 
           if (!addedCount) {
             MusicData.deletePlaylist(newPlaylist.id);
-            throw new Error('No matching tracks were found for that prompt.');
+            throw new Error('No close song matches were found. Try naming an artist, genre, or decade.');
           }
 
-          if (window.UI) window.UI.showToast(`AI playlist generated with ${addedCount} songs!`);
+          if (window.UI) window.UI.showToast(`AI playlist generated with ${addedCount} matched songs!`);
           closeAiModal();
           navigate('playlist', newPlaylist.id);
         } catch (err) {
           console.error(err);
-          setAiStatus(err.message || 'Failed to generate playlist. Check your API key and try again.', 'error');
+          setAiStatus(err.message || 'Failed to generate playlist. Try again later.', 'error');
           if (window.UI) window.UI.showToast('Failed to generate playlist.');
         } finally {
           setAiBusy(false);
@@ -1229,7 +1469,6 @@
           MusicData.renamePlaylist(id, newName);
           if (window.UI) {
              UI.showToast("Playlist renamed successfully!");
-             UI.renderSidebarPlaylists();
           }
           navigate('playlist', id);
           if (typeof renderView === 'function') renderView(); // Force UI update
@@ -1266,7 +1505,6 @@
           MusicData.deletePlaylist(id);
           if (window.UI) {
              UI.showToast("Playlist deleted successfully!");
-             UI.renderSidebarPlaylists();
           }
           navigate('home');
         }
@@ -1286,12 +1524,23 @@
   const App = {
     init() {
       console.log('[App] Initialising BeatFlow...');
+      // Remove API keys saved by older versions; browser storage is not a safe secret store.
+      try { localStorage.removeItem('groq_api_key'); } catch (_) {}
 
       // Fetch server configuration
       fetch('/api/config')
         .then(res => res.json())
         .then(config => {
           window.hasServerGroqKey = !!config.hasGroqKey;
+          window.hasAccounts = !!config.hasAccounts;
+          document.dispatchEvent(new CustomEvent('server:config', { detail: config }));
+          const status = document.getElementById('ai-config-status');
+          const modal = document.getElementById('settings-modal');
+          if (status && modal && !modal.classList.contains('hidden')) {
+            status.textContent = window.hasServerGroqKey
+              ? 'AI features are ready.'
+              : 'AI features are unavailable until the server is configured.';
+          }
         })
         .catch(err => console.warn('Could not fetch server configuration:', err));
 
@@ -1325,6 +1574,7 @@
       setupNav();
 
       // 8. Keyboard shortcuts
+      setupActionKeyboardAccess();
       setupKeyboard();
 
       // 9. File input
@@ -1336,8 +1586,16 @@
       // 11. Local files listener
       setupLocalFilesListener();
 
+      document.addEventListener('library:profilechange', renderView);
+      document.addEventListener('library:synced', () => {
+        if (['library', 'liked', 'downloaded', 'playlist'].includes(currentView)) renderView();
+      });
+
       // 12. Initial volume UI
+      UI.updatePlayPauseBtn();
       UI.updateVolumeUI(Player.volume);
+      UI.updateTransportState();
+      UI.updatePlaybackModeUI();
 
       // 13. Setup modals
       setupModals();
@@ -1347,6 +1605,8 @@
         window.location.hash = '#home';
       }
       renderView();
+
+      if (window.AuthManager) window.AuthManager.init();
 
       // PWA: Service Worker registration
       registerServiceWorker();

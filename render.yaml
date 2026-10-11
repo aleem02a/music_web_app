@@ -1,12 +1,29 @@
 services:
   - type: web
     name: aurafy-music-player
-    env: node
+    runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --omit=dev
     startCommand: npm start
+    healthCheckPath: /healthz
     envVars:
-      - key: PORT
-        value: 8000
+      - key: NODE_ENV
+        value: production
+      - key: AI_REQUIRE_AUTH
+        value: "true"
       - key: GROQ_API_KEY
         sync: false
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: APP_ORIGINS
+        value: capacitor://localhost,ionic://localhost

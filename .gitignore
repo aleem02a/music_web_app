@@ -1,5 +1,16 @@
 # Dependency directories
 node_modules/
+.env
+.env.*
+!.env.example
+
+# Generated mobile and desktop application output
+android-app/android/.gradle/
+android-app/android/app/build/
+desktop-app/dist/
+
+# Runtime account and library data (keep local user data out of Git)
+data/*.json
 
 # OS metadata
 .DS_Store

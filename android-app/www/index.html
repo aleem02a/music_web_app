@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurafy Music</title>
+  <style>
+    body {
+      margin: 0;
+      background: #090E18;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      color: white;
+    }
+    .loader {
+      text-align: center;
+    }
+    .loader h1 {
+      background: linear-gradient(135deg, #378ACB, #8279E8, #68B8EF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(130, 121, 232, 0.3);
+      border-top-color: #8279E8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <h1>Aurafy</h1>
+    <div class="spinner"></div>
+    <p>Loading your music...</p>
+  </div>
+  <script>
+    // Redirect to the live app URL
+    window.location.href = 'https://aurafy-music-player.onrender.com';
+  </script>
+</body>
+</html>

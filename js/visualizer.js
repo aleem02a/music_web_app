@@ -20,9 +20,9 @@
 
   // ── Gradient colors ─────────────────────────────────────────
   const GRADIENT_STOPS = [
-    { pos: 0.0, color: [255, 42, 133] },    // #FF2A85  (Aurafy pink)
-    { pos: 0.5, color: [124, 58, 237] },     // #7C3AED  (Purple)
-    { pos: 1.0, color: [236, 72, 153] }      // #EC4899  (Pink)
+    { pos: 0.0, color: [55, 138, 203] },     // #378ACB blue
+    { pos: 0.5, color: [130, 121, 232] },    // #8279E8 violet
+    { pos: 1.0, color: [104, 184, 239] }     // #68B8EF light blue
   ];
 
   const lerpColor = (t) => {
@@ -133,12 +133,13 @@
 
       // Auto-start/stop with player
       document.addEventListener('player:play', () => Visualizer.start());
-      document.addEventListener('player:pause', () => { /* keep last frame visible */ });
+      document.addEventListener('player:pause', () => Visualizer.stop());
 
       console.log('[Visualizer] Initialised');
     },
 
     start() {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (isRunning) return;
       isRunning = true;
       drawFrame();

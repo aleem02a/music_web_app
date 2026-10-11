@@ -25,7 +25,7 @@
     recentlyPlayed = recentlyPlayed.filter(t => t.id !== track.id);
     recentlyPlayed.unshift(track);
     if (recentlyPlayed.length > 20) recentlyPlayed.pop();
-    try { localStorage.setItem('pulse_recently_played', JSON.stringify(recentlyPlayed)); } catch(e){}
+    try { localStorage.setItem(storageKey('recently_played'), JSON.stringify(recentlyPlayed)); notifyLibraryChanged(); } catch(e){}
   };
 
   const getRecentlySearched = () => recentlySearched;
@@ -34,7 +34,7 @@
     recentlySearched = recentlySearched.filter(i => i.id !== item.id);
     recentlySearched.unshift(item);
     if (recentlySearched.length > 20) recentlySearched.pop();
-    try { localStorage.setItem('pulse_recently_searched', JSON.stringify(recentlySearched)); } catch(e){}
+    try { localStorage.setItem(storageKey('recently_searched'), JSON.stringify(recentlySearched)); notifyLibraryChanged(); } catch(e){}
   };
 
   // ── Demo Artists ────────────────────────────────────────────
@@ -93,31 +93,31 @@
       id: 'playlist-chill', name: 'Chill Vibes', coverUrl: 'https://picsum.photos/seed/chillvibes/300/300',
       description: 'Relax and unwind with these mellow tracks.',
       tracks: [tracks[0], tracks[1], tracks[15], tracks[16], tracks[11]],
-      isUserCreated: false, gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      isUserCreated: false, gradient: 'linear-gradient(135deg, #378ACB 0%, #8279E8 100%)'
     },
     {
       id: 'playlist-energy', name: 'High Energy', coverUrl: 'https://picsum.photos/seed/highenergy/300/300',
       description: 'Pump up your workout with these bangers.',
       tracks: [tracks[4], tracks[5], tracks[6], tracks[7], tracks[8]],
-      isUserCreated: false, gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      isUserCreated: false, gradient: 'linear-gradient(135deg, #68b8ef 0%, #8279e8 100%)'
     },
     {
       id: 'playlist-focus', name: 'Deep Focus', coverUrl: 'https://picsum.photos/seed/deepfocus/300/300',
       description: 'Instrumental music for deep concentration.',
       tracks: [tracks[10], tracks[11], tracks[17], tracks[15], tracks[16]],
-      isUserCreated: false, gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+      isUserCreated: false, gradient: 'linear-gradient(135deg, #68B8EF 0%, #6878DF 100%)'
     },
     {
       id: 'playlist-night', name: 'Late Night Drive', coverUrl: 'https://picsum.photos/seed/latenightdrive/300/300',
       description: 'Synthwave and chill beats for the midnight road.',
       tracks: [tracks[0], tracks[18], tracks[19], tracks[3], tracks[9]],
-      isUserCreated: false, gradient: 'linear-gradient(135deg, #0c3483 0%, #a2b6df 100%)'
+      isUserCreated: false, gradient: 'linear-gradient(135deg, #142A3B 0%, #8279E8 100%)'
     },
     {
       id: 'playlist-discover', name: 'Discover Weekly', coverUrl: 'https://picsum.photos/seed/discoverweekly/300/300',
       description: 'A fresh mix of tracks curated just for you.',
       tracks: [tracks[12], tracks[13], tracks[14], tracks[2], tracks[7], tracks[18]],
-      isUserCreated: false, gradient: 'linear-gradient(135deg, #FF2A85 0%, #191414 100%)'
+      isUserCreated: false, gradient: 'linear-gradient(135deg, #68B8EF 0%, #172235 100%)'
     }
   ];
 
@@ -130,63 +130,165 @@
   let userPlaylists = [];
   let recentlyPlayed = [];
   let recentlySearched = [];
+  let activeUserId = null;
 
-  const init = () => {
+  const storageKey = (collection) => activeUserId
+    ? `aurafy:${encodeURIComponent(activeUserId)}:${collection}`
+    : `pulse_${collection}`;
+
+  const lyricsCacheFingerprint = (text) => {
+    let hash = 2166136261;
+    for (let i = 0; i < String(text || '').length; i++) {
+      hash ^= String(text).charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+  };
+
+  const getLyricsWordSync = (trackId, lyricsText) => {
+    if (!trackId || !lyricsText) return null;
     try {
-      const lsLiked = localStorage.getItem('pulse_liked_songs');
-      if (lsLiked) likedSongs = JSON.parse(lsLiked);
+      const cache = JSON.parse(localStorage.getItem(storageKey('lyrics_word_sync_v1')) || '{}');
+      const entry = cache[String(trackId)];
+      return entry && entry.fingerprint === lyricsCacheFingerprint(lyricsText) && Array.isArray(entry.lines)
+        ? entry.lines
+        : null;
+    } catch (_) { return null; }
+  };
 
-      const lsDownloaded = localStorage.getItem('pulse_downloaded_songs');
-      if (lsDownloaded) downloadedSongs = JSON.parse(lsDownloaded);
+  const saveLyricsWordSync = (trackId, lyricsText, lines) => {
+    if (!trackId || !lyricsText || !Array.isArray(lines)) return;
+    try {
+      const key = storageKey('lyrics_word_sync_v1');
+      const cache = JSON.parse(localStorage.getItem(key) || '{}');
+      cache[String(trackId)] = {
+        fingerprint: lyricsCacheFingerprint(lyricsText),
+        savedAt: Date.now(),
+        lines: lines.map(line => ({
+          text: String(line.text || ''),
+          time: Number.isFinite(line.time) ? line.time : null,
+          words: Array.isArray(line.words) ? line.words.map(word => ({
+            text: String(word.text || ''),
+            time: Number.isFinite(word.time) ? word.time : null,
+            endTime: Number.isFinite(word.endTime) ? word.endTime : null
+          })) : []
+        }))
+      };
+      const entries = Object.entries(cache).sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0)).slice(0, 30);
+      localStorage.setItem(key, JSON.stringify(Object.fromEntries(entries)));
+    } catch (_) {}
+  };
 
-      const lsPlaylists = localStorage.getItem('pulse_user_playlists');
-      if (lsPlaylists) userPlaylists = JSON.parse(lsPlaylists);
+  const notifyLibraryChanged = () => {
+    document.dispatchEvent(new CustomEvent('library:changed', { detail: { userId: activeUserId } }));
+  };
 
-      const lsPlayed = localStorage.getItem('pulse_recently_played');
-      if (lsPlayed) recentlyPlayed = JSON.parse(lsPlayed);
-
-      const lsSearched = localStorage.getItem('pulse_recently_searched');
-      if (lsSearched) recentlySearched = JSON.parse(lsSearched);
+  const loadStoredState = () => {
+    try {
+      const readArray = (collection) => {
+        const raw = localStorage.getItem(storageKey(collection));
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      };
+      likedSongs = readArray('liked_songs');
+      downloadedSongs = readArray('downloaded_songs');
+      userPlaylists = readArray('user_playlists');
+      recentlyPlayed = readArray('recently_played');
+      recentlySearched = readArray('recently_searched');
     } catch (e) {
-      console.warn('Error reading from localStorage', e);
+      console.warn('Error reading music library from localStorage', e);
+      likedSongs = [];
+      downloadedSongs = [];
+      userPlaylists = [];
+      recentlyPlayed = [];
+      recentlySearched = [];
     }
   };
-  init();
+  loadStoredState();
 
   const saveLikedSongs = () => {
     try {
-      localStorage.setItem('pulse_liked_songs', JSON.stringify(likedSongs));
+      localStorage.setItem(storageKey('liked_songs'), JSON.stringify(likedSongs));
+      notifyLibraryChanged();
     } catch(e) {}
   };
 
   const saveDownloadedSongs = () => {
     try {
-      localStorage.setItem('pulse_downloaded_songs', JSON.stringify(downloadedSongs));
+      const metadata = downloadedSongs.map(track => {
+        const saved = { ...track };
+        delete saved.downloadBlob;
+        if (typeof saved.audioUrl === 'string' && saved.audioUrl.startsWith('blob:')) saved.audioUrl = '';
+        return saved;
+      });
+      localStorage.setItem(storageKey('downloaded_songs'), JSON.stringify(metadata));
+      notifyLibraryChanged();
     } catch(e) {}
   };
 
   const saveUserPlaylists = () => {
     try {
-      localStorage.setItem('pulse_user_playlists', JSON.stringify(userPlaylists));
+      localStorage.setItem(storageKey('user_playlists'), JSON.stringify(userPlaylists));
+      notifyLibraryChanged();
     } catch(e) {}
   };
 
   // --- Saavn API Integration ---
   const SAAVN_BASE = '/api';
+  const SAAVN_SEARCH_CACHE_TTL_MS = 45000;
+  const saavnSearchCache = new Map();
 
-  const mapSaavnTrack = (st) => ({
-    id: `saavn-${st.id}`,
-    title: st.title ? st.title.replace(/&quot;/g, '"').replace(/&#039;/g, "'") : 'Unknown Title',
-    artist: st.subtitle || st.artists || st.album_artist || 'Unknown Artist',
-    artistId: st.artist_id ? `saavn-artist-${st.artist_id}` : '',
-    album: st.album || '',
-    albumId: st.album_id ? `saavn-album-${st.album_id}` : '',
-    duration: Number(st.duration) || 0,
-    coverUrl: st.image || 'https://picsum.photos/seed/default/300/300',
-    audioUrl: st.url || st.media_url || '',
-    source: 'saavn',
-    genre: st.language || 'Pop'
-  });
+  const getSaavnAudio = (song) => {
+    const candidates = [];
+    const addCandidate = (value, fallbackQuality = '') => {
+      if (!value) return;
+      const item = typeof value === 'string' ? { url: value, quality: fallbackQuality } : value;
+      const url = item.url || item.link || item.media_url || item.downloadUrl;
+      if (!url) return;
+      const quality = String(item.quality || item.label || fallbackQuality || '');
+      const bitrate = Number((quality.match(/\d{2,4}/) || [])[0]) || 0;
+      candidates.push({ url, quality, bitrate });
+    };
+
+    // Some Saavn responses expose a list of bitrates; prefer the highest one.
+    [song.downloadUrl, song.download_url, song.downloadUrls].forEach((collection) => {
+      if (Array.isArray(collection)) collection.forEach((item) => addCandidate(item));
+      else if (collection && typeof collection === 'object') Object.entries(collection).forEach(([quality, value]) => addCandidate(value, quality));
+      else if (typeof collection === 'string') addCandidate(collection);
+    });
+
+    if (candidates.length) {
+      candidates.sort((a, b) => b.bitrate - a.bitrate);
+      const best = candidates[0];
+      const bitrate = best.bitrate || Number((best.url.match(/(?:_|\b)(\d{2,4})(?:kbps)?(?:\.|\/)/i) || [])[1]) || 0;
+      return { url: best.url, quality: bitrate ? `${bitrate} kbps` : best.quality };
+    }
+
+    const url = song.url || song.media_url || '';
+    const has320 = song['320kbps'] === true || String(song['320kbps']).toLowerCase() === 'true';
+    const urlBitrate = Number((url.match(/(?:_|\b)(\d{2,4})(?:kbps)?(?:\.|\/)/i) || [])[1]) || 0;
+    const bitrate = has320 ? 320 : urlBitrate;
+    return { url, quality: bitrate ? `${bitrate} kbps` : '' };
+  };
+
+  const mapSaavnTrack = (st) => {
+    const audio = getSaavnAudio(st);
+    return {
+      id: `saavn-${st.id}`,
+      title: st.title ? st.title.replace(/&quot;/g, '"').replace(/&#039;/g, "'") : 'Unknown Title',
+      artist: st.subtitle || st.artists || st.album_artist || 'Unknown Artist',
+      artistId: st.artist_id ? `saavn-artist-${st.artist_id}` : '',
+      album: st.album || '',
+      albumId: st.album_id ? `saavn-album-${st.album_id}` : '',
+      duration: Number(st.duration) || 0,
+      coverUrl: st.image || 'https://picsum.photos/seed/default/300/300',
+      audioUrl: audio.url,
+      audioQuality: audio.quality,
+      source: 'saavn',
+      genre: st.language || 'Pop'
+    };
+  };
 
   const mapSaavnAlbum = (sa) => {
     const songsArray = sa.songs || sa.list || [];
@@ -204,20 +306,217 @@
     };
   };
 
-  const saavnFetch = async (endpoint) => {
+  const saavnFetch = async (endpoint, options = {}) => {
     try {
-      const res = await fetch(`${SAAVN_BASE}${endpoint}`);
+      const res = await fetch(`${SAAVN_BASE}${endpoint}`, { signal: options.signal });
       if (!res.ok) throw new Error(`Saavn API error: ${res.status}`);
       const data = await res.json();
       return data;
     } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
       console.warn('[MusicData] Saavn fetch failed:', err);
       return null;
     }
   };
 
+  const parseLyricsfileScalar = (raw) => {
+    const value = String(raw || '').trim();
+    if (value.startsWith("'") && value.endsWith("'")) {
+      return value.slice(1, -1).replace(/''/g, "'");
+    }
+    if (value.startsWith('"') && value.endsWith('"')) {
+      try { return JSON.parse(value); } catch (_) { return value.slice(1, -1); }
+    }
+    return value.replace(/\s+#.*$/, '').trim();
+  };
+
+  // LRCLIB returns Lyricsfile as YAML. Read only the simple lines/words
+  // mapping we need, without pulling a YAML parser into the browser bundle.
+  const parseLyricsfile = (source) => {
+    if (typeof source !== 'string' || !source.trim()) return [];
+    const lines = [];
+    let currentLine = null;
+    let currentWord = null;
+    let inLines = false;
+    let inWords = false;
+    let lineIndent = null;
+    let wordIndent = null;
+
+    source.replace(/^\uFEFF/, '').split(/\r?\n/).forEach((raw) => {
+      const indent = (raw.match(/^[ \t]*/) || [''])[0].length;
+      const text = raw.trim();
+      if (!text || text.startsWith('#')) return;
+
+      // Lyricsfile YAML is commonly emitted with list items flush-left
+      // (`lines:\n- text: ...`), while hand-authored files may indent them.
+      // Detect the actual list indentation instead of assuming either style.
+      if (indent === 0 && /^[A-Za-z_][\w-]*\s*:/.test(text)) {
+        inLines = /^lines\s*:\s*(?:#.*)?$/i.test(text);
+        inWords = false;
+        lineIndent = null;
+        wordIndent = null;
+        return;
+      }
+      if (!inLines) return;
+
+      const sequenceText = raw.match(/^[ \t]*-\s+text:\s*(.*)$/);
+      if (sequenceText) {
+        if (lineIndent === null) lineIndent = indent;
+        if (indent === lineIndent) {
+          currentLine = { time: null, text: parseLyricsfileScalar(sequenceText[1]), words: [] };
+          currentWord = null;
+          wordIndent = null;
+          inWords = false;
+          lines.push(currentLine);
+        } else if (currentLine && inWords && indent > lineIndent) {
+          currentWord = { time: null, text: parseLyricsfileScalar(sequenceText[1]) };
+          wordIndent = indent;
+          currentLine.words.push(currentWord);
+        }
+        return;
+      }
+      if (!currentLine) return;
+
+      if (indent > lineIndent && /^words\s*:\s*(?:#.*)?$/i.test(text)) {
+        inWords = true;
+        currentWord = null;
+        wordIndent = null;
+        return;
+      }
+      const timeValue = text.match(/^(start_ms|end_ms):\s*(-?\d+)\s*$/);
+      if (!timeValue) return;
+      const isWordField = inWords && currentWord && wordIndent !== null && indent >= wordIndent + 2;
+      const target = isWordField ? currentWord : currentLine;
+      if (!target) return;
+      const seconds = Number(timeValue[2]) / 1000;
+      if (timeValue[1] === 'start_ms') target.time = seconds;
+      else target.endTime = seconds;
+    });
+
+    return lines
+      .filter(line => line.text && Number.isFinite(line.time) && line.time >= 0)
+      .map(line => ({
+        ...line,
+        words: line.words
+          .filter(word => word.text && Number.isFinite(word.time) && word.time >= 0)
+          .sort((a, b) => a.time - b.time)
+      }))
+      .sort((a, b) => a.time - b.time);
+  };
+
+  const normalizeLyricsMatch = (value) => String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+  const artistMatchScore = (requested, candidate) => {
+    const wanted = new Set(normalizeLyricsMatch(requested).split(' ').filter(Boolean));
+    const found = new Set(normalizeLyricsMatch(candidate).split(' ').filter(Boolean));
+    if (!wanted.size || !found.size) return 0;
+    let overlap = 0;
+    wanted.forEach(token => { if (found.has(token)) overlap += 1; });
+    return overlap / Math.min(wanted.size, found.size);
+  };
+
+  const normalizeLyricsTitle = (value) => normalizeLyricsMatch(value)
+    .replace(/\bfrom\b.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const hasLrcTimestamps = (lyrics) => /(?:^|\n)\s*\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/.test(String(lyrics || ''));
+  const hasLrcWordTimestamps = (lyrics) => /\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\][^\n]*<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/.test(String(lyrics || ''));
+
+  const lyricsRecordToResult = (record) => {
+    if (!record || record.instrumental) return { instrumental: true, lines: [], isSynced: false, hasWordSync: false };
+    const timedLines = parseLyricsfile(record.lyricsfile);
+    if (timedLines.length) {
+      return { lines: timedLines, isSynced: true, hasWordSync: timedLines.some(line => line.words.length > 1), source: 'lrclib' };
+    }
+    if (record.syncedLyrics) return {
+      lyrics: record.syncedLyrics,
+      isSynced: hasLrcTimestamps(record.syncedLyrics),
+      hasWordSync: hasLrcWordTimestamps(record.syncedLyrics),
+      source: 'lrclib'
+    };
+    if (record.plainLyrics) return { lyrics: record.plainLyrics, source: 'lrclib' };
+    return null;
+  };
+
   // ── Public API ──────────────────────────────────────────────
   window.MusicData = {
+
+    get activeUserId() { return activeUserId; },
+
+    getLyricsWordSync,
+    saveLyricsWordSync,
+
+    setActiveUser: (userId) => {
+      const nextUserId = userId || null;
+      if (activeUserId === nextUserId) return;
+      activeUserId = nextUserId;
+      loadStoredState();
+      document.dispatchEvent(new CustomEvent('library:profilechange', { detail: { userId: activeUserId } }));
+    },
+
+    exportUserLibrary: () => {
+      const cleanTrack = (track) => {
+        if (!track || track.source === 'local' || String(track.id || '').startsWith('local-')) return null;
+        const clean = { ...track };
+        delete clean.fileBlob;
+        delete clean.coverBlob;
+        delete clean.downloadBlob;
+        if (typeof clean.audioUrl === 'string' && /^(blob:|data:)/i.test(clean.audioUrl)) clean.audioUrl = '';
+        if (typeof clean.coverUrl === 'string' && /^(blob:|data:)/i.test(clean.coverUrl)) clean.coverUrl = '';
+        return clean;
+      };
+      const cleanArray = (items) => items.map(cleanTrack).filter(Boolean);
+      return {
+        likedSongs: cleanArray(likedSongs),
+        userPlaylists: userPlaylists.map(playlist => ({
+          ...playlist,
+          tracks: cleanArray(Array.isArray(playlist.tracks) ? playlist.tracks : [])
+        })),
+        recentlyPlayed: cleanArray(recentlyPlayed),
+        recentlySearched: cleanArray(recentlySearched)
+      };
+    },
+
+    mergeUserLibrary: (remote) => {
+      if (!remote || typeof remote !== 'object' || Array.isArray(remote)) return;
+      const mergeById = (local, cloud) => {
+        const merged = new Map();
+        [...(Array.isArray(cloud) ? cloud : []), ...(Array.isArray(local) ? local : [])].forEach(item => {
+          if (item && item.id) merged.set(item.id, { ...(merged.get(item.id) || {}), ...item });
+        });
+        return Array.from(merged.values());
+      };
+      likedSongs = mergeById(likedSongs, remote.likedSongs);
+      recentlyPlayed = mergeById(recentlyPlayed, remote.recentlyPlayed).slice(0, 20);
+      recentlySearched = mergeById(recentlySearched, remote.recentlySearched).slice(0, 20);
+
+      const localPlaylists = userPlaylists;
+      const mergedPlaylists = new Map();
+      (Array.isArray(remote.userPlaylists) ? remote.userPlaylists : []).forEach(playlist => {
+        if (playlist && playlist.id) mergedPlaylists.set(playlist.id, { ...playlist, tracks: Array.isArray(playlist.tracks) ? playlist.tracks : [] });
+      });
+      localPlaylists.forEach(playlist => {
+        if (!playlist || !playlist.id) return;
+        const previous = mergedPlaylists.get(playlist.id);
+        const mergedTracks = mergeById(playlist.tracks, previous && previous.tracks);
+        mergedPlaylists.set(playlist.id, { ...(previous || {}), ...playlist, tracks: mergedTracks });
+      });
+      userPlaylists = Array.from(mergedPlaylists.values());
+      saveLikedSongs();
+      saveUserPlaylists();
+      try {
+        localStorage.setItem(storageKey('recently_played'), JSON.stringify(recentlyPlayed));
+        localStorage.setItem(storageKey('recently_searched'), JSON.stringify(recentlySearched));
+      } catch (_) {}
+    },
 
     /* ---- Local getters ---- */
     getAllTracks: () => [...tracks, ...localTracks],
@@ -269,6 +568,13 @@
     /* ---- Downloaded Songs API ---- */
     getDownloadedSongs: () => [...downloadedSongs],
     isDownloaded: (trackId) => downloadedSongs.some(t => t.id === trackId),
+    restoreDownloadedTrack: (track) => {
+      if (!track || !track.id) return;
+      const idx = downloadedSongs.findIndex(item => item.id === track.id);
+      if (idx >= 0) downloadedSongs[idx] = { ...downloadedSongs[idx], ...track };
+      else downloadedSongs.unshift(track);
+      saveDownloadedSongs();
+    },
     toggleDownloaded: (track) => {
       const idx = downloadedSongs.findIndex(t => t.id === track.id);
       if (idx >= 0) {
@@ -289,7 +595,7 @@
         description: 'Created by you.',
         tracks: [],
         isUserCreated: true,
-        gradient: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)'
+        gradient: 'linear-gradient(135deg, #378ACB 0%, #6878DF 100%)'
       };
       userPlaylists.unshift(newPlaylist);
       saveUserPlaylists();
@@ -335,8 +641,15 @@
     addRecentlySearched,
 
     /* ---- Saavn API ---- */
-    searchSaavn: async (query) => {
-      const resData = await saavnFetch(`/search/${encodeURIComponent(query)}`);
+    searchSaavn: async (query, options = {}) => {
+      const searchTerm = String(query || '').trim();
+      if (!searchTerm) return { tracks: [], albums: [], artists: [] };
+      const cacheKey = searchTerm.normalize('NFKC').toLocaleLowerCase().replace(/\s+/g, ' ');
+      const cached = saavnSearchCache.get(cacheKey);
+      if (cached && Date.now() - cached.savedAt < SAAVN_SEARCH_CACHE_TTL_MS) return cached.results;
+      if (cached) saavnSearchCache.delete(cacheKey);
+      const resData = await saavnFetch(`/search/${encodeURIComponent(searchTerm)}`, options);
+      if (!resData) return { tracks: [], albums: [], artists: [], unavailable: true };
       const results = (resData && resData.results) ? resData.results : (Array.isArray(resData) ? resData : []);
       if (!Array.isArray(results)) return { tracks: [], albums: [], artists: [] };
       
@@ -357,11 +670,14 @@
       });
       const albums = Array.from(albumsMap.values());
       
-      return {
+      const searchResults = {
         tracks,
         albums,
         artists: [] // Artist extraction omitted for brevity
       };
+      saavnSearchCache.set(cacheKey, { results: searchResults, savedAt: Date.now() });
+      if (saavnSearchCache.size > 40) saavnSearchCache.delete(saavnSearchCache.keys().next().value);
+      return searchResults;
     },
 
     getSaavnAlbum: async (albumId) => {
@@ -375,33 +691,94 @@
       return mapped;
     },
 
-    getSongLyrics: async (id, track) => {
-      // If we have track details, try lrclib for perfectly synced lyrics
-      if (track && track.title) {
+    getSongLyrics: async (id, track, options = {}) => {
+      const signal = options.signal;
+      const title = String(track && track.title || '').trim();
+      const artist = String(track && track.artist || '').trim();
+      const album = String(track && track.album || '').trim();
+      const duration = Math.round(Number(track && track.duration) || 0);
+      const isLocalTrack = track && (track.source === 'local' || String(track.id || '').startsWith('local-'));
+      let bestPlainLyrics = null;
+      let bestLineSyncedLyrics = null;
+
+      if (title && artist) {
+        const params = new URLSearchParams({ track_name: title, artist_name: artist });
+        if (album) params.set('album_name', album);
+        if (duration >= 1 && duration <= 3600) params.set('duration', String(duration));
+        let searchAllowed = true;
+
+        // /api/get uses the complete signature (including duration when
+        // available), so same-title songs are not casually mixed together.
+        // A transient endpoint/network error should still allow the separate
+        // search endpoint to return timed lyrics. Only back off on 429.
         try {
-          const lrcUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(track.title)}&artist_name=${encodeURIComponent(track.artist || '')}`;
-          const lrcRes = await fetch(lrcUrl);
-          if (lrcRes.ok) {
-            const lrcData = await lrcRes.json();
-            const synced = lrcData.find(x => x.syncedLyrics);
-            if (synced && synced.syncedLyrics) {
-              return synced.syncedLyrics; // Return LRC format
-            }
+          const exactResponse = await fetch(`https://lrclib.net/api/get?${params}`, { signal });
+          if (exactResponse.status === 429) searchAllowed = false;
+          if (exactResponse.ok) {
+            const exactRecord = await exactResponse.json();
+            const exactResult = lyricsRecordToResult(exactRecord);
+            if (exactResult && exactResult.instrumental) return exactResult;
+            if (exactResult && exactResult.hasWordSync) return exactResult;
+            if (exactResult && exactResult.isSynced) bestLineSyncedLyrics = exactResult;
+            else if (exactResult) bestPlainLyrics = exactResult;
           }
         } catch (err) {
-          console.warn('LRCLIB fetch failed, falling back to Saavn', err);
+          if (err && err.name === 'AbortError') throw err;
+          console.warn('LRCLIB exact lookup failed; trying its search endpoint.', err);
         }
+
+        // Search alternatives when the strict signature has only plain or
+        // line-synced lyrics; a matching word-timed record is more useful.
+        const searchParams = new URLSearchParams({ track_name: title, artist_name: artist });
+        if (album) searchParams.set('album_name', album);
+        if (searchAllowed) {
+          try {
+            const searchResponse = await fetch(`https://lrclib.net/api/search?${searchParams}`, { signal });
+            if (searchResponse.ok) {
+              const records = await searchResponse.json();
+              const normalizedTitle = normalizeLyricsTitle(title);
+              const candidates = (Array.isArray(records) ? records : [])
+                .map((record, index) => {
+                  const candidateTitle = normalizeLyricsTitle(record.trackName || record.name);
+                  const titleExact = candidateTitle === normalizedTitle;
+                  const artistScore = artistMatchScore(artist, record.artistName);
+                  const candidateDuration = Number(record.duration) || 0;
+                  const durationDelta = duration && candidateDuration ? Math.abs(duration - candidateDuration) : 0;
+                  const albumMatch = album && normalizeLyricsMatch(album) === normalizeLyricsMatch(record.albumName);
+                  return { record, index, titleExact, artistScore, durationDelta, albumMatch: Boolean(albumMatch) };
+                })
+                .filter(item => item.titleExact && item.artistScore >= 0.5 && (!duration || !item.durationDelta || item.durationDelta <= 8))
+                .sort((a, b) => Number(b.record.hasWordSync) - Number(a.record.hasWordSync) || Number(b.albumMatch) - Number(a.albumMatch) || a.durationDelta - b.durationDelta || b.artistScore - a.artistScore || a.index - b.index);
+              for (const candidate of candidates) {
+                const matchedResult = lyricsRecordToResult(candidate.record);
+                if (matchedResult && matchedResult.instrumental) continue;
+                if (matchedResult && matchedResult.hasWordSync) return matchedResult;
+                if (matchedResult && matchedResult.isSynced && !bestLineSyncedLyrics) bestLineSyncedLyrics = matchedResult;
+                else if (matchedResult && !bestPlainLyrics) bestPlainLyrics = matchedResult;
+              }
+            }
+          } catch (err) {
+            if (err && err.name === 'AbortError') throw err;
+            console.warn('LRCLIB search failed; trying the track lyrics source.', err);
+          }
+        }
+        if (bestLineSyncedLyrics) return bestLineSyncedLyrics;
+        if (bestPlainLyrics) return bestPlainLyrics;
       }
 
-      // Fallback to Saavn raw lyrics
-      const rawId = id.replace('saavn-', '');
+      // Local audio has no Saavn ID. For catalog tracks, keep the provider's
+      // track-ID lookup as a text-only fallback when no timed match exists.
+      if (isLocalTrack) return null;
+      if (track && track.source && track.source !== 'saavn' && !String(id || '').startsWith('saavn-')) return null;
+      const rawId = String(id || '').replace('saavn-', '');
       try {
-        const data = await saavnFetch(`/lyrics/${rawId}`);
+        const data = await saavnFetch(`/lyrics/${encodeURIComponent(rawId)}`, { signal });
         if (data && data.lyrics) {
-          return data.lyrics.replace(/<br>/g, '\n');
+          return { lyrics: String(data.lyrics).replace(/<br\s*\/?\s*>/gi, '\n'), source: 'saavn' };
         }
         return null;
       } catch (err) {
+        if (err && err.name === 'AbortError') throw err;
         return null;
       }
     },
