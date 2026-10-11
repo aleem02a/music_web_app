@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aurafy-cache-v22';
+const CACHE_NAME = 'aurafy-cache-v23';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

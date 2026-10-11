@@ -1301,3 +1301,112 @@
   .fullscreen-player { scroll-behavior: auto; }
 }
 
+/* Keep the mobile mini-player inside the safe viewport on notched phones. */
+body.mobile-view-active .player-bar {
+  position: fixed !important;
+  left: calc(12px + env(safe-area-inset-left, 0px)) !important;
+  right: calc(12px + env(safe-area-inset-right, 0px)) !important;
+  bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 10px) !important;
+  width: auto !important;
+  max-width: none !important;
+  height: 72px !important;
+  min-height: 72px !important;
+  margin: 0 !important;
+  padding: 8px clamp(8px, 2.8vw, 14px) !important;
+  box-sizing: border-box !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(4px, 1.8vw, 10px);
+  overflow: hidden;
+  border-radius: 16px !important;
+}
+
+body.mobile-view-active .player-center,
+body.mobile-view-active .player-right {
+  display: none !important;
+}
+
+body.mobile-view-active .player-mobile-controls {
+  display: flex !important;
+  align-items: center;
+}
+
+body.mobile-view-active .player-bar .player-mini-progress {
+  left: 12px;
+  right: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+body.mobile-view-active .player-left {
+  min-width: 0;
+  gap: clamp(6px, 2vw, 10px);
+}
+
+body.mobile-view-active .player-album-art-container {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+}
+
+body.mobile-view-active .player-track-info {
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+body.mobile-view-active .player-track-title,
+body.mobile-view-active .player-track-artist {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mobile-view-active .player-track-meta { min-width: 0; }
+
+body.mobile-view-active .player-like-btn {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+
+body.mobile-view-active .player-mobile-controls {
+  flex: 0 0 auto;
+  gap: clamp(2px, 1.3vw, 6px);
+}
+
+body.mobile-view-active .player-mobile-controls .player-btn {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+}
+
+@media (max-width: 360px) {
+  body.mobile-view-active .player-bar {
+    left: calc(8px + env(safe-area-inset-left, 0px)) !important;
+    right: calc(8px + env(safe-area-inset-right, 0px)) !important;
+    padding-inline: 8px !important;
+  }
+
+  body.mobile-view-active .player-album-art-container {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  body.mobile-view-active .player-like-btn {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  body.mobile-view-active .player-mobile-controls { gap: 0; }
+  body.mobile-view-active .player-mobile-controls .player-btn {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+}
+

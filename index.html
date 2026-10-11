@@ -24,7 +24,7 @@
       // Clear old service worker caches for instant update
       if ('caches' in window) {
         caches.keys().then(keys => {
-          keys.forEach(k => { if (k !== 'aurafy-cache-v22') caches.delete(k); });
+          keys.forEach(k => { if (k !== 'aurafy-cache-v23') caches.delete(k); });
         });
       }
     </script>
@@ -33,7 +33,7 @@
     <link rel="stylesheet" href="css/index.css?v=20261010_101">
     <link rel="stylesheet" href="css/layout.css?v=20261011_responsive3">
     <link rel="stylesheet" href="css/components.css?v=20261011_responsive3">
-    <link rel="stylesheet" href="css/player.css?v=20261011_responsive3">
+    <link rel="stylesheet" href="css/player.css?v=20261011_iphone_player_alignment1">
     <link rel="stylesheet" href="css/animations.css?v=20261011_home_card_motion1">
 </head>
 <body>
