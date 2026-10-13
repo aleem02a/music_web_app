@@ -58,9 +58,17 @@ Format:
     const url = `/api/groq/openai/v1/chat/completions`;
     
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      try {
+        const firebaseIdToken = await window.AuthManager?.getFirebaseIdToken?.();
+        if (firebaseIdToken) headers.Authorization = `Bearer ${firebaseIdToken}`;
+      } catch (authError) {
+        console.warn('Could not refresh Firebase sign-in for AI request:', authError.message);
+      }
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({
           messages: [{ role: "user", content: prompt }],
         })

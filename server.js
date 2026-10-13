@@ -398,6 +398,27 @@ const getAuthContext = async (req, res) => {
   return { configured: true, user: null };
 };
 
+// AI calls can use Firebase's signed ID token directly. This avoids relying on
+// the process-local session map, which is lost when a Render instance restarts.
+const getAiAuthContext = async (req, res) => {
+  const authorization = String(req.headers.authorization || '');
+  const tokenMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!tokenMatch) return getAuthContext(req, res);
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || '';
+  if (!projectId) return { configured: true, user: null };
+  const identity = await verifyFirebaseIdToken(tokenMatch[1], projectId);
+  return {
+    configured: true,
+    user: {
+      id: identity.uid,
+      email: identity.email,
+      displayName: identity.displayName || identity.email.split('@')[0],
+      provider: identity.signInProvider === 'google.com' ? 'google' : 'email'
+    }
+  };
+};
+
 const allowSameOriginMutation = (req) => {
   const origin = req.headers.origin;
   if (!origin) return true;
@@ -651,8 +672,11 @@ const proxyAi = async (req, res, ip) => {
   if (authRequired && !isAccountAuthConfigured()) return sendJson(res, 503, { error: 'AI access requires Firebase Authentication or Supabase Auth to be configured on this server.' });
   if (authRequired) {
     let auth;
-    try { auth = await getAuthContext(req, res); }
-    catch (_) { return sendJson(res, 503, { error: 'Account service is temporarily unavailable.' }); }
+    try { auth = await getAiAuthContext(req, res); }
+    catch (error) {
+      if (error.statusCode === 503) return sendJson(res, 503, { error: 'Account service is temporarily unavailable.' });
+      return sendJson(res, 401, { error: 'Your sign-in needs refreshing. Please sign in again.' });
+    }
     if (!auth.user) return sendJson(res, 401, { error: 'Sign in to use the AI assistant.' });
     rateLimitKey = auth.user.id;
   }
@@ -714,8 +738,11 @@ const proxyLyricsWordSync = async (req, res, ip) => {
   if (authRequired && !isAccountAuthConfigured()) return sendJson(res, 503, { error: 'AI access requires Firebase Authentication or Supabase Auth to be configured on this server.' });
   if (authRequired) {
     let auth;
-    try { auth = await getAuthContext(req, res); }
-    catch (_) { return sendJson(res, 503, { error: 'Account service is temporarily unavailable.' }); }
+    try { auth = await getAiAuthContext(req, res); }
+    catch (error) {
+      if (error.statusCode === 503) return sendJson(res, 503, { error: 'Account service is temporarily unavailable.' });
+      return sendJson(res, 401, { error: 'Your sign-in needs refreshing. Please sign in again.' });
+    }
     if (!auth.user) return sendJson(res, 401, { error: 'Sign in before generating word timing.' });
     rateLimitKey = auth.user.id;
   }

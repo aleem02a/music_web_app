@@ -14,6 +14,7 @@
     user: null,
     firebaseApp: null,
     firebaseAuth: null,
+    firebaseAuthStateReady: null,
     isFirebaseConnected: false,
     firebaseSetupPromise: null,
     syncing: false,
@@ -195,9 +196,15 @@
       state.firebaseApp = firebase.initializeApp({ apiKey, authDomain, projectId });
       state.firebaseAuth = firebase.auth();
       state.isFirebaseConnected = true;
+      let resolveInitialAuthState;
+      state.firebaseAuthStateReady = new Promise((resolve) => { resolveInitialAuthState = resolve; });
 
       // ── Real-Time Auth State Listener ──────────────────────
       state.firebaseAuth.onAuthStateChanged((fbUser) => {
+        if (resolveInitialAuthState) {
+          resolveInitialAuthState();
+          resolveInitialAuthState = null;
+        }
         console.log('[Firebase Auth]', fbUser ? fbUser.email : 'Signed out');
         if (fbUser) {
           const formatted = formatFirebaseUser(fbUser);
@@ -210,6 +217,12 @@
         } else if (state.user && state.user.isFirebase) {
           setUser(null);
         }
+      }, (error) => {
+        if (resolveInitialAuthState) {
+          resolveInitialAuthState();
+          resolveInitialAuthState = null;
+        }
+        console.warn('[Firebase Auth] Could not restore the current session:', error.message);
       });
 
       // Redirect sign-in returns to the app in a new page load. Read its result
@@ -357,6 +370,7 @@
               </div>
 
               <div class="auth-titles-block">
+                <span class="auth-brand-mark auth-mobile-mark" aria-hidden="true">A</span>
                 <p class="auth-eyebrow" id="auth-eyebrow">${isSignup ? 'JOIN AURAFY' : 'WELCOME BACK'}</p>
                 <h1 id="account-title">${isSignup ? 'Create your account' : 'Welcome back'}</h1>
                 <p id="account-intro" class="account-intro">${isSignup ? 'Join free today to sync your playlists and liked songs everywhere.' : 'Sign in to access your synced music library and favorites.'}</p>
@@ -602,6 +616,18 @@
     renderPage,
     get user() { return state.user; },
     get isFirebaseConnected() { return state.isFirebaseConnected; },
+    async getFirebaseIdToken() {
+      const auth = state.firebaseAuth;
+      if (!auth) return '';
+      if (!auth.currentUser && state.firebaseAuthStateReady) {
+        await Promise.race([
+          state.firebaseAuthStateReady,
+          new Promise((resolve) => setTimeout(resolve, 5000))
+        ]);
+      }
+      const currentUser = auth.currentUser;
+      return currentUser ? currentUser.getIdToken() : '';
+    },
     signOut,
     openGoogleAuthFlow
   };

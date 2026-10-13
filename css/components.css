@@ -5347,3 +5347,165 @@ body.auth-page-active { overflow-x: hidden; }
   .auth-page *::before,
   .auth-page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Phone login and sign-up layout. Desktop keeps the two-panel presentation. */
+.auth-mobile-mark { display: none; }
+
+@media (max-width: 600px) {
+  .auth-page-login,
+  .auth-page-signup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: var(--app-viewport-height, 100dvh);
+    padding: calc(18px + env(safe-area-inset-top, 0px))
+      calc(16px + env(safe-area-inset-right, 0px))
+      calc(18px + env(safe-area-inset-bottom, 0px))
+      calc(16px + env(safe-area-inset-left, 0px));
+  }
+
+  .auth-page-login .auth-horizontal-wrapper,
+  .auth-page-signup .auth-horizontal-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 480px;
+    min-height: 0;
+    margin: auto;
+    overflow: hidden;
+    border: 1px solid rgba(190, 205, 230, .12);
+    border-radius: 24px;
+    background: #101725;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .36);
+  }
+
+  .auth-page-login .auth-showcase-panel,
+  .auth-page-signup .auth-showcase-panel {
+    display: block;
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 22px 24px 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .auth-page-login .auth-showcase-panel::before,
+  .auth-page-login .auth-showcase-panel::after,
+  .auth-page-signup .auth-showcase-panel::before,
+  .auth-page-signup .auth-showcase-panel::after,
+  .auth-page-login .auth-showcase-hero,
+  .auth-page-signup .auth-showcase-hero,
+  .auth-page-login .auth-showcase-footer,
+  .auth-page-signup .auth-showcase-footer {
+    display: none;
+  }
+
+  .auth-page-login .auth-showcase-top,
+  .auth-page-signup .auth-showcase-top {
+    margin: 0;
+  }
+
+  .auth-page-login .auth-form-panel,
+  .auth-page-signup .auth-form-panel {
+    width: 100%;
+    padding: 14px 24px 28px;
+    background: transparent;
+  }
+
+  .auth-page-login .auth-form-top,
+  .auth-page-signup .auth-form-top {
+    display: none;
+  }
+
+  .auth-page-login .auth-card-inner,
+  .auth-page-signup .auth-card-inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
+  }
+
+  .auth-page-login .account-mode-switch,
+  .auth-page-signup .account-mode-switch {
+    display: none;
+  }
+
+  .auth-page-login .auth-titles-block,
+  .auth-page-signup .auth-titles-block {
+    order: 1;
+    margin: 0 0 22px;
+    text-align: center;
+  }
+
+  .auth-mobile-mark {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    border-radius: 14px;
+    place-items: center;
+    font-size: 22px;
+  }
+
+  .auth-page-login .auth-card-inner h1,
+  .auth-page-signup .auth-card-inner h1 {
+    margin: 0 0 8px;
+    font-size: clamp(27px, 7vw, 32px);
+    line-height: 1.15;
+  }
+
+  .auth-page-login .account-intro,
+  .auth-page-signup .account-intro {
+    margin: 0 auto;
+    max-width: 380px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .auth-page-login .account-message,
+  .auth-page-signup .account-message { order: 2; }
+
+  .auth-page-login .account-message:empty,
+  .auth-page-signup .account-message:empty { display: none; }
+
+  .auth-page-login #account-form,
+  .auth-page-signup #account-form {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .auth-page-login .auth-divider,
+  .auth-page-signup .auth-divider {
+    order: 4;
+    margin: 20px 0;
+  }
+
+  .auth-page-login .btn-google-auth,
+  .auth-page-signup .btn-google-auth { order: 5; }
+
+  .auth-page-login .auth-switch-prompt,
+  .auth-page-signup .auth-switch-prompt {
+    order: 6;
+    margin: 22px 0 0;
+    text-align: center;
+  }
+
+  .auth-page-login .auth-legal-note,
+  .auth-page-signup .auth-legal-note {
+    order: 7;
+    margin: 16px 0 0;
+    text-align: center;
+  }
+
+  .auth-page-login .account-field,
+  .auth-page-signup .account-field { margin-bottom: 16px; }
+
+  .auth-page-login .account-field input,
+  .auth-page-signup .account-field input { min-height: 52px; }
+
+  .auth-page-login .account-submit,
+  .auth-page-signup .account-submit { min-height: 54px; }
+}
