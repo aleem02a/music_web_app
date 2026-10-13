@@ -31,8 +31,8 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/index.css?v=20261010_101">
-    <link rel="stylesheet" href="css/layout.css?v=20261011_responsive3">
-    <link rel="stylesheet" href="css/components.css?v=20261013_mobile_auth2">
+    <link rel="stylesheet" href="css/layout.css?v=20261013_mobile_nav_motion3">
+    <link rel="stylesheet" href="css/components.css?v=20261013_mobile_cards3">
     <link rel="stylesheet" href="css/player.css?v=20261011_bluetooth_mobile1">
     <link rel="stylesheet" href="css/animations.css?v=20261011_home_card_motion1">
 </head>
@@ -301,7 +301,7 @@
         </footer>
 
         <!-- ============== MOBILE BOTTOM NAV ============== -->
-        <nav class="mobile-nav" id="mobile-nav">
+        <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
             <a href="#home" class="mobile-nav-item active" data-view="home" id="mobile-nav-home">
                 <svg class="mobile-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.71 2.29a1 1 0 00-1.42 0l-9 9a1 1 0 000 1.42A1 1 0 003 13h1v7a2 2 0 002 2h12a2 2 0 002-2v-7h1a1 1 0 00.71-1.71l-9-9z"/>
@@ -326,6 +326,32 @@
                 </svg>
                 <span class="mobile-nav-label">AI</span>
             </a>
+            <a href="#" class="mobile-nav-item mobile-nav-action" data-action="create-playlist" id="mobile-nav-create-playlist" aria-label="Create playlist">
+                <svg class="mobile-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                <span class="mobile-nav-label">Create</span>
+            </a>
+            <a href="#liked" class="mobile-nav-item" data-view="liked" id="mobile-nav-liked" aria-label="Liked songs">
+                <svg class="mobile-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                <span class="mobile-nav-label">Liked</span>
+            </a>
+            <a href="#downloaded" class="mobile-nav-item" data-view="downloaded" id="mobile-nav-downloaded" aria-label="Downloaded music">
+                <svg class="mobile-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                <span class="mobile-nav-label">Downloads</span>
+            </a>
+            <label class="mobile-nav-item mobile-nav-action mobile-nav-import" id="mobile-nav-import" aria-label="Import music files">
+                <svg class="mobile-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <path d="m17 8-5-5-5 5M12 3v12"/>
+                </svg>
+                <span class="mobile-nav-label">Import</span>
+                <input type="file" accept="audio/*" multiple hidden data-action="import-files">
+            </label>
         </nav>
 
         <!-- ============== FULLSCREEN PLAYER (Mobile) ============== -->
@@ -583,7 +609,7 @@
     <!-- Firebase compat SDK matches the namespaced auth API used by js/auth.js. -->
     <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
-    <script src="js/auth.js?v=20261013_firebase_token2"></script>
-    <script src="js/app.js?v=20261011_responsive3"></script>
+    <script src="js/auth.js?v=20261013_firebase_token3"></script>
+    <script src="js/app.js?v=20261013_mobile_horizontal_nav1"></script>
 </body>
 </html>

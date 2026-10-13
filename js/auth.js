@@ -617,6 +617,9 @@
     get user() { return state.user; },
     get isFirebaseConnected() { return state.isFirebaseConnected; },
     async getFirebaseIdToken() {
+      // App startup does not await AuthManager.init(). Wait for the config request
+      // and Firebase initialization before deciding there is no signed-in user.
+      if (state.firebaseSetupPromise) await state.firebaseSetupPromise;
       const auth = state.firebaseAuth;
       if (!auth) return '';
       if (!auth.currentUser && state.firebaseAuthStateReady) {

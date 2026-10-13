@@ -1065,8 +1065,7 @@
 
     // Create playlist action
     // Create playlist action via sidebar is now handled directly by clicking the link which triggers the global listener since we can just assign data-action="create-playlist" to it.
-    const createPlBtn = document.getElementById('nav-create-playlist');
-    if (createPlBtn) {
+    document.querySelectorAll('.sidebar-nav-item[data-action="create-playlist"], .mobile-nav-item[data-action="create-playlist"]').forEach((createPlBtn) => {
       createPlBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const modal = document.getElementById('create-playlist-modal');
@@ -1077,7 +1076,7 @@
           input.focus();
         }
       });
-    }
+    });
 
     // Header navigation (removed nav arrows)
     

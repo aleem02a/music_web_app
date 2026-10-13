@@ -1134,37 +1134,97 @@
   left: 0;
   right: 0;
   height: var(--mobile-nav-height);
-  background: rgba(18, 18, 18, .92);
-  backdrop-filter: blur(12px); transform: translateZ(0);
-  -webkit-backdrop-filter: blur(12px); transform: translateZ(0);
-  border-top: 1px solid var(--color-border);
+  box-sizing: border-box;
+  background: rgba(5, 7, 12, .82);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, .34);
   z-index: calc(var(--z-player) + 1);
-  padding: 0;
-  justify-content: space-around;
+  padding: 0 max(8px, env(safe-area-inset-left, 0px));
+  justify-content: flex-start;
   align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
 }
+
+.mobile-nav::-webkit-scrollbar { display: none; }
 
 .mobile-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 72px;
+  min-width: 72px;
+  min-height: 100%;
   gap: 2px;
   padding: var(--space-2) var(--space-1);
+  box-sizing: border-box;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-out);
+  transition: color 180ms var(--ease-out), transform 180ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  isolation: isolate;
   text-decoration: none;
+  scroll-snap-align: center;
+}
+
+.mobile-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 8px 6px;
+  z-index: -1;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 20%, rgba(103, 183, 239, .2), rgba(91, 116, 211, .08) 72%);
+  opacity: 0;
+  transform: scale(.9);
+  transition: opacity 180ms var(--ease-out), transform 220ms var(--ease-out), border-color 180ms var(--ease-out);
+  pointer-events: none;
 }
 
 .mobile-nav-item:hover,
 .mobile-nav-item.active {
   color: var(--color-text-primary);
+}
+
+.mobile-nav-item.active::before,
+.mobile-nav-item:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+  border-color: rgba(103, 183, 239, .3);
+  background: linear-gradient(145deg, rgba(104, 184, 239, .2), rgba(91, 116, 211, .12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 5px 16px rgba(46, 113, 179, .15);
+}
+
+.mobile-nav-item.active::before {
+  animation: mobile-nav-selection-in 300ms cubic-bezier(.2, .72, .2, 1) both;
+}
+
+.mobile-nav-item:active {
+  transform: scale(.96);
+}
+
+.mobile-nav-item:active::before {
+  opacity: 1;
+  transform: scale(.96);
+  background: radial-gradient(circle at 50% 35%, rgba(103, 183, 239, .3), rgba(91, 116, 211, .12) 76%);
+}
+
+.mobile-nav-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+  border-radius: 12px;
 }
 
 .mobile-nav-item.active::after {
@@ -1183,6 +1243,24 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+  transform-origin: center;
+  transition: transform 180ms var(--ease-out), filter 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  filter: drop-shadow(0 0 6px rgba(103, 183, 239, .3));
+  transform: translateY(-1px) scale(1.04);
+  animation: mobile-nav-icon-pop 320ms cubic-bezier(.2, .72, .2, 1) both;
+}
+
+.mobile-nav-item.active .mobile-nav-label {
+  color: var(--color-text-primary);
+  text-shadow: 0 0 10px rgba(103, 183, 239, .22);
+}
+
+.mobile-nav-item:active .mobile-nav-icon {
+  filter: drop-shadow(0 0 8px rgba(103, 183, 239, .45));
+  transform: translateY(1px) scale(.88);
 }
 
 .mobile-nav-label {
@@ -1192,6 +1270,25 @@
   white-space: nowrap;
   font-size: 10px;
   font-weight: var(--weight-medium);
+}
+
+@keyframes mobile-nav-selection-in {
+  0% { opacity: 0; transform: scale(.86); }
+  72% { opacity: 1; transform: scale(1.035); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes mobile-nav-icon-pop {
+  0% { transform: translateY(2px) scale(.88); }
+  72% { transform: translateY(-2px) scale(1.1); }
+  100% { transform: translateY(-1px) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav { scroll-behavior: auto; }
+  .mobile-nav-item,
+  .mobile-nav-item::before,
+  .mobile-nav-icon { transition: none; animation: none; }
 }
 
 /* ============================================================
